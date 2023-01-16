@@ -66,26 +66,51 @@ Credits
 """
 
 
+import argparse
 import os
 import sys
-import argparse
 import textwrap
 from pathlib import Path
 
 import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import matplotlib.colors as colors
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 import numpy as np
 from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
-from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.Blast import NCBIXML
+from Bio.Blast.Applications import NcbiblastnCommandline
+from Bio.SeqRecord import SeqRecord
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 class GenBankRecord:
-    """Store relevant info from a GenBank file."""
+    """Store relevant info from a GenBank file.
+
+    Attributes
+    ----------
+    name : str
+        Sequence name shown next to the `LOCUS` tag.
+    accession : str
+        Sequence accession number with version.
+    description : str
+        Description shown next to the `DEFINITION` tag.
+    length : int
+        Sequence length.
+    sequence_start : int
+        Start coordinate used for plotting. Default value is zero but changes
+        if `alignments_position` of `MakeFigure` class is set to center or
+        left.
+    sequence_end : int
+        End coordinate used for plotting. Default value is zero but changes if
+        `alignments_position` of `MakeFigure` class is set to center or left.
+    cds : list
+        List of `CodingSequence` classes with info of `CDS` tags as product,
+        start, end, strand, and color.
+    num_cds : int
+        Number of CDSs
+    """
+
     def __init__(self, file_name):
         record = SeqIO.read(file_name, 'genbank')
         self.name = record.name
@@ -95,18 +120,20 @@ class GenBankRecord:
         self.sequence_start = 0
         self.sequence_end = self.length
         self.cds = self.parse_gb(record)
-
-    class CodingSequence:
-        """Store info of Coding Sequence (CDS)."""
-        def __init__(self, product, start, end, strand, color):
-            self.product = product
-            self.start = int(start)
-            self.end = int(end)
-            self.strand = int(strand)
-            self.color = color
+        self.num_cds = len(self.cds)
 
     def parse_gb(self, record):
-        """Get Coding Sequences (CDSs) information from GenBank file."""
+        """Parse gb file and make a list of `CodingSequence` classes.
+
+        Parameters
+        ----------
+        record : Bio SeqIO.read object.
+
+        Returns
+        -------
+        coding_sequences : list
+            List of `CodingSequence` classes holding CDSs' information.
+        """
         coding_sequences = []
         for feature in record.features:
             if feature.type != 'CDS':
@@ -126,64 +153,100 @@ class GenBankRecord:
                 start = feature.location._start + 1
                 end = feature.location._end
             # Append cds
-            coding_sequences.append(self.CodingSequence(
+            coding_sequences.append(CodingSequence(
                 product, start, end, strand, color
             ))
         return coding_sequences
 
+class CodingSequence:
+    """Store Coding Sequence (CDS) information from gb file."""
+    def __init__(self, product, start, end, strand, color):
+        self.product = product
+        self.start = int(start)
+        self.end = int(end)
+        self.strand = int(strand)
+        self.color = color
+
 class BlastnAlignment:
-    """Store Blastn results."""
-    def __init__(self, query_name, hit_name, query_len, hit_len):
-        self.query_name = query_name
-        self.hit_name = hit_name
-        self.query_len = query_len
-        self.hit_len = hit_len
-        self.regions = []
+    """Store blastn alignment results.
 
-    class RegionAlignmentResult:
-        """Save blastn results of region that aligned."""
-        def __init__(
-            self, query_from, query_to, hit_from, hit_to, identity, positive,
-            align_len
-        ):
-            self.query_from = query_from
-            self.query_to = query_to
-            self.hit_from = hit_from
-            self.hit_to = hit_to
-            self.identity = identity
-            self.positive = positive
-            self.align_len = align_len
-            self.homology = identity / align_len
+    Attributes
+    ----------
+    query_name : str
+        Name of query sequence.
+    hit_name : str
+        Name of subject sequence.
+    query_len : int
+        Length of query sequence.
+    hit_len : int
+        Length of subject sequence.
+    regions : list
+        List of `RegionAlignmentResult` classes with info of aligned region as
+        query_from, query_to, hit_from, hit_to, and identity.
+    """
 
-    def append_region(
+    def __init__(self, xml_alignment_result):
+        with open(xml_alignment_result, 'r') as result_handle:
+            blast_record = NCBIXML.read(result_handle)
+            self.query_name = blast_record.query
+            self.hit_name = blast_record.alignments[0].hit_def
+            self.query_len = int(blast_record.query_length)
+            self.hit_len = int(blast_record.alignments[0].length)
+            self.regions = self.parse_blast_regions(blast_record)
+
+    def parse_blast_regions(self, blast_record):
+        """Parse blastn aligned regions to store the information.
+
+        Parameters
+        ----------
+        blast_record : NCBIXML object
+            Harbors blastn alignment results in xml format.
+
+        Returns
+        -------
+        regions : list
+            List of `RegionAlignmentResult` classes with info from alignment.
+        """
+        regions = []
+        for region in blast_record.alignments[0].hsps:
+            regions.append(RegionAlignmentResult(
+                query_from=int(region.query_start),
+                query_to=int(region.query_end),
+                hit_from=int(region.sbjct_start),
+                hit_to=int(region.sbjct_end),
+                identity=int(region.identities),
+                positive=int(region.positives),
+                align_len=int(region.align_length)
+            ))
+        return regions
+
+class RegionAlignmentResult:
+    """Save blastn results of region that aligned."""
+    def __init__(
         self, query_from, query_to, hit_from, hit_to, identity, positive,
         align_len
     ):
-        """Upgrade BlastnAlignment regions dictionary."""
-        alignment_region = self.RegionAlignmentResult(
-            query_from=int(query_from),
-            query_to=int(query_to),
-            hit_from=int(hit_from),
-            hit_to=int(hit_to),
-            identity=int(identity),
-            positive=int(positive),
-            align_len=int(align_len)
-        )
-        self.regions.append(alignment_region)
+        self.query_from = query_from
+        self.query_to = query_to
+        self.hit_from = hit_from
+        self.hit_to = hit_to
+        self.identity = identity
+        self.positive = positive
+        self.align_len = align_len
+        self.homology = identity / align_len
 
 def make_fasta_file(gb_files):
-    """
-    Make fasta files from GenBank files.
+    """Make fasta files from GenBank files and save them in local directory.
 
     Parameters
     ----------
     gb_files : list
-        List of GenBank files
+        List of GenBank files.
     
     Returns
     -------
     faa_files : list
-        List of fasta files names
+        List of fasta files names.
     """
     faa_files = []
     for gb_file in gb_files:
@@ -199,18 +262,17 @@ def make_fasta_file(gb_files):
     return faa_files
 
 def run_blastn(faa_files):
-    """
-    Run blastn locally and create an xml results file.
+    """Run blastn locally and create xml result file(s).
 
     Parameters
     ----------
     faa_files : list
-        List of fasta files
+        List of fasta files.
     
     Returns
     -------
     results : list
-        List of xml files' names with blastn results
+        List of xml files' names with blastn results.
     """
     results = []
     for i in range(len(faa_files) - 1):
@@ -236,55 +298,13 @@ def delete_files(documents: list) -> None:
         else:
             print(f"File {document} does not exist")
 
-def parse_blast_xml(xml_results):
-    """
-    Parse xml file generated by blastn.
-
-    The info collected helps to plot the regions with homology.
-
-    Parameters
-    ----------
-    xml_results : list
-        List of xml files with blastn results for parsing
-
-    Returns
-    -------
-    alignments : list
-        List of BlastnAlignment classes carrying info of each blastn result
-    """
-    alignments = []
-    for xml_result in xml_results:
-        with open(xml_result, 'r') as result_handle:
-            blast_record = NCBIXML.read(result_handle)
-            query_name = blast_record.query
-            query_len = int(blast_record.query_length)
-            hit_name = blast_record.alignments[0].hit_def
-            hit_len = int(blast_record.alignments[0].length)
-            # Store data in class BlastnAlignment
-            alignment = BlastnAlignment(
-                query_name=query_name,
-                hit_name=hit_name,
-                query_len=query_len,
-                hit_len=hit_len
-            )
-            # Store the "High-scoring segment pairs" (HSPS) information.
-            # HSP is a local alignment with no gaps that achieves one of the
-            # highest alignment scores in a given search
-            for region_record in blast_record.alignments[0].hsps:
-                alignment.append_region(
-                    query_from=int(region_record.query_start),
-                    query_to=int(region_record.query_end),
-                    hit_from=int(region_record.sbjct_start),
-                    hit_to=int(region_record.sbjct_end),
-                    identity=int(region_record.identities),
-                    positive=int(region_record.positives),
-                    align_len=int(region_record.align_length)
-                )
-        alignments.append(alignment)
+def get_alignment_records(alignment_files: list) -> list:
+    """Parse xml alignment files and make list of `BlastnAlignment` classes."""
+    alignments = [BlastnAlignment(alignment) for alignment in alignment_files]
     return alignments
 
 def get_gb_records(gb_files: list) -> list:
-    """Parse gb files and make list of GenBankRecord classes."""
+    """Parse gb files and make list of `GenBankRecord` classes."""
     gb_records = [GenBankRecord(gb_file) for gb_file in gb_files]
     return gb_records
 
@@ -333,7 +353,7 @@ class MakeFigure:
                 sequence.end = sequence.end + delta
 
     def adjust_positions_alignments_right(self):
-        """Adjust postion of aligments to the right."""
+        """Adjust position of alignments to the right."""
         for alignment in self.alignments:
             delta_query = self.size_longest_sequence - alignment.query_len
             delta_hit = self.size_longest_sequence - alignment.hit_len
@@ -342,6 +362,14 @@ class MakeFigure:
                 region.query_to = region.query_to + delta_query
                 region.hit_from = region.hit_from + delta_hit
                 region.hit_to = region.hit_to + delta_hit
+
+    def adjust_positions_sequences_center(self):
+        """Adjust position of sequences to the center."""
+        pass
+
+    def adjust_position_aligments_center(self):
+        """Adjust position if alignmets to the center."""
+        pass
 
     def plot_dna_sequences(self, ax):
         """
@@ -647,25 +675,25 @@ def main():
     # gb_files = ['seq1.gb', 'seq2.gb', 'seq3.gb', 'seq4.gb']
     # gb_files = ['CP072204.gb', 'SW4848.gb','CP000645.gb']
 
-    # Create fasta files for BLASTing
+    # Create fasta files for BLASTing.
     faa_files = make_fasta_file(gb_files)
-    # Run blastn locally
+    # Run blastn locally.
     xml_results = run_blastn(faa_files)
-    # Delete fasta files used for BLASTing
+    # Delete fasta files used for BLASTing.
     delete_files(faa_files)
-    # Parse xml file to extract info
-    alignments = parse_blast_xml(xml_results)
-    # Delete xml documents
+    # Make a list of `BlastnAlignment` classes from the xml blastn results.
+    alignments = get_alignment_records(xml_results)
+    # Delete xml documents.
     delete_files(xml_results)
-    # Get GenBankRecords
+    # Make a list of `GenBankRecord` classes from the gb files.
     gb_records = get_gb_records(gb_files)
-    # Make figure
+    # Make figure.
     figure = MakeFigure(
         alignments,
         gb_records,
-        alignments_position="left",
-        identity_color="Greys",
-        add_annotations_genes=False,
+        alignments_position="right",
+        identity_color="Blues",
+        add_annotations_genes=True,
         add_annotations_sequences=False,
         y_separation=10,
         homology_padding=0.08

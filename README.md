@@ -40,3 +40,5 @@ $ python msplotter -i path/file_1.gb path/file_2.gb path/file_3.gb -f pdf
    Sullivan et al (2011) Bioinformatics 27(7):1009-1010
 
 ## License
+
+BSD 3-Clause License
