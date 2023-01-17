@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 # =============================================================================
 
-"""
-Make a graphical representation of a blastn alignment.
+"""Make a graphical representation of a blastn alignment.
 
 Multiple Sequence Plotter (MSPlotter) uses GenBank files (.gb) to align the
 sequences and plot the genes. To plot the genes, MSPlotter uses the information
@@ -82,7 +81,7 @@ from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
 
-__version__ = '0.1.1'
+__version__ = '0.1.2'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -314,7 +313,8 @@ class MakeFigure:
         self, alignments, gb_records, alignments_position="left",
         add_annotations_genes=False, add_annotations_sequences=False,
         sequence_name="accession", y_separation=10, sequence_color="black",
-        sequence_width=3, identity_color="Blues", homology_padding=0.06
+        sequence_width=3, identity_color="Blues", homology_padding=0.06,
+        figure_name="figure_1.svg", figure_format="svg"
     ):
         self.alignments = alignments
         self.gb_records = gb_records
@@ -328,22 +328,19 @@ class MakeFigure:
         self.identity_color = identity_color
         self.homology_padding = y_separation * homology_padding
         self.size_longest_sequence = self.get_longest_sequence()
+        self.figure_name = figure_name
+        self.figure_format = figure_format
 
     def get_longest_sequence(self) -> int:
-        """Find the longest sequence in gb_records"""
+        """Find the longest sequence in gb_records."""
         longest = 0
         for record in self.gb_records:
             if record.length > longest:
                 longest = record.length
         return longest
 
-    def adjust_x_right(self, x1, x2):
-        """Adjust x coordinates of CDS to alignt figure to the right."""
-        difference = self.size_longest_sequence - x2
-        return (x1 + difference, x2 + difference)
-
     def adjust_positions_sequences_right(self):
-        """Adjust position of sequences to the right."""
+        """Adjust position of sequences to the right including CDSs."""
         for record in self.gb_records:
             delta = self.size_longest_sequence - record.length
             record.sequence_start = record.sequence_start + delta
@@ -364,12 +361,25 @@ class MakeFigure:
                 region.hit_to = region.hit_to + delta_hit
 
     def adjust_positions_sequences_center(self):
-        """Adjust position of sequences to the center."""
-        pass
+        """Adjust position of sequences to the center including CDSs."""
+        for record in self.gb_records:
+            shift = (self.size_longest_sequence - record.length) / 2
+            record.sequence_start = record.sequence_start + shift
+            record.sequence_end = record.sequence_end + shift
+            for sequence in record.cds:
+                sequence.start = sequence.start + shift
+                sequence.end = sequence.end + shift
 
-    def adjust_position_aligments_center(self):
-        """Adjust position if alignmets to the center."""
-        pass
+    def adjust_positions_alignments_center(self):
+        """Adjust position of alignmets to the center."""
+        for alignment in self.alignments:
+            shift_q = (self.size_longest_sequence - alignment.query_len) / 2
+            shift_h = (self.size_longest_sequence - alignment.hit_len) / 2
+            for region in alignment.regions:
+                region.query_from = region.query_from + shift_q
+                region.query_to = region.query_to + shift_q
+                region.hit_from = region.hit_from + shift_h
+                region.hit_to = region.hit_to + shift_h
 
     def plot_dna_sequences(self, ax):
         """
@@ -383,9 +393,12 @@ class MakeFigure:
             Distance to separate genes in the y axis
         """
         y_distance = len(self.gb_records) * self.y_separation
-        # Readjust position sequences to the right if requested
+        # Readjust position sequences to the right or center if requested.
         if self.alignments_position == "right":
             self.adjust_positions_sequences_right()
+        elif self.alignments_position == 'center':
+            self.adjust_positions_sequences_center()
+        # Plot lines representing sequences.
         for gb_record in self.gb_records:
             x1 = gb_record.sequence_start
             x2 = gb_record.sequence_end
@@ -419,7 +432,7 @@ class MakeFigure:
         alignment : BlastnAlignment class
         """
         y_distance = ((len(self.alignments) + 1) * self.y_separation)
-        # make colormap for homology regions
+        # Make colormap for homology regions.
         cmap = plt.colormaps[self.identity_color]
         # Extract subset of colormap for better representation of homologies
         # and update the `self.identity_color` with this new colormap.
@@ -429,13 +442,16 @@ class MakeFigure:
             max_val = 0.75,
             n = 100
         )
-        # Readjust position of alignment to right if requested
+        # Readjust position of alignment to right or center if requested.
         if self.alignments_position == "right":
             self.adjust_positions_alignments_right()
-        # plot regions with homology
+        elif self.alignments_position == "center":
+            print("alignments center!")
+            self.adjust_positions_alignments_center()
+        # Plot regions with homology.
         for alignment in self.alignments:
             for region in alignment.regions:
-                # get region's coordinates
+                # Get region's coordinates.
                 x1 = region.query_from
                 x2 = region.query_to
                 x3 = region.hit_to
@@ -466,12 +482,12 @@ class MakeFigure:
         y_separation : int
             Distance to separate genes in the y axis
         """
-        # Separation of genes of each sequence in the y axis
+        # Separation of genes of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
         arrowstyle = mpatches.ArrowStyle(
             "simple", head_width=0.5, head_length=0.2
         )
-        # Iterate over GenBankRecords and plot genes
+        # Iterate over GenBankRecords and plot genes.
         for gb_record in self.gb_records:
             for gene in gb_record.cds:
                 arrow = mpatches.FancyArrowPatch(
@@ -496,7 +512,7 @@ class MakeFigure:
         y_separation : int
             Distance to separate genes in the y axis
         """
-        # Separation of annotations of each sequence in the y axis
+        # Separation of annotations of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
         for gb_record in self.gb_records:
             if self.sequence_name == 'accession':
@@ -515,7 +531,7 @@ class MakeFigure:
         """
         Annotate genes of DNA sequence.
         """
-        # Annotate genes of first DNA sequence
+        # Annotate genes of first DNA sequence.
         for gene in gb_record.cds:
             location_annotation = (gene.start + gene.end) / 2
             ax.annotate(
@@ -527,15 +543,15 @@ class MakeFigure:
                 ha="center"
             )
 
-    def make_figure(self, name='figure_1.svg', format='svg'):
+    def make_figure(self):
         # Change figure size. Default size is 6.4 x 4.8
         fig, ax = plt.subplots(figsize=(8,4.8))
-        # Plot DNA sequences
+        # Plot DNA sequences.
         self.plot_dna_sequences(ax)
-        # Annotate DNA sequences
+        # Annotate DNA sequences.
         if self.add_annotations_sequences:
             self.annotate_dna_sequences(ax)
-        # Plot homology regions
+        # Plot homology regions.
         self.plot_homology_regions(ax)
         # Plot colorbar
         norm = mpl.colors.Normalize(vmin=0, vmax=100)
@@ -574,43 +590,55 @@ class MakeFigure:
         # Adjust the padding between and around subplots.
         plt.tight_layout()
         # Save figure as svg
-        plt.savefig(name, format=format)
+        plt.savefig(fname=self.figure_name, format=self.figure_format)
         # Show plot
         plt.show()
 
 class UserInput:
     """Store information provided by the user via the command line."""
     def __init__(self):
-        # Get user input
+        # Get user input.
         info = self.user_input()
-        # Store input files
+        # Store input files.
         self.input_files = [Path(document) for document in info.input]
-        # Check input files
+        # Check input files.
         self.check_input_files()
-        # Store output folder
+        # Store output folder.
         if info.output is not None:
             self.output_folder = Path(info.output)
         else:
             self.output_folder = Path('.')
-        # Check output folder
+        # Check output folder.
         self.check_output_folder()
-        # Store figure name
+        # Store figure name.
         if info.name is not None:
-            self.fig_name = info.name
+            self.figure_name = info.name
         else:
-            self.fig_name = 'figure.svg'
-        # Store figure format
+            self.figure_name = 'figure_1.svg'
+        # Store figure format.
         if info.format is not None:
-            self.fig_format = info.format
+            self.figure_format = info.format
         else:
-            self.fig_format = 'svg'
+            self.figure_format = 'svg'
         # Check that figure name extention matches figure format and make path
-        # for output file
+        # for output file.
         if self.check_figure_extention() == 0:
-            self.output_file = self.output_folder / self.fig_name
+            self.output_file = self.output_folder / self.figure_name
         else:
-            name = self.fig_name + '.' + self.fig_format
+            name = self.figure_name + '.' + self.figure_format
             self.output_file = (self.output_folder / name)
+        # Store alignment position
+        if info.alignments_position is not None:
+            self.alignments_position = info.alignments_position
+        else:
+            self.alignments_position = 'left'
+        # Check if alignment_position is valid
+        self.check_alignments_position()
+        # Store identity color
+        if info.identity_color is not None:
+            self.identity_color = info.identity_color
+        else:
+            self.identity_color = 'Greys'
 
     def user_input(self):
         """
@@ -624,18 +652,48 @@ class UserInput:
         """
         # Parse arguments and provide help.
         parser = argparse.ArgumentParser(
+            add_help=False,
             prog='msplotter.py',
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-            description=textwrap.dedent(__doc__)
+            formatter_class=argparse.RawTextHelpFormatter,
+            description=(
+                "Make a graphical representation of a blastn alignment."
+            )
         )
-        # Make optional arguments.
-        parser.add_argument(
-            '-i', '--input', required=True, help='path to input files',
+        # Make argument groups
+        required = parser.add_argument_group('Required arguments')
+        optional = parser.add_argument_group('Optional arguments')
+        # Required arguments
+        required.add_argument(
+            '-i', '--input', required=True, help='Path to input files.',
             nargs='+'
         )
-        parser.add_argument('-o', '--output', help='path to output folder')
-        parser.add_argument('-n', '--name', help='name of figure')
-        parser.add_argument('-f', '--format', help='format of figure')
+        # Optional aguments
+        # parser._optionals.title = 'Optional arguments'
+        optional.add_argument(
+            '-h', '--help', action='help',
+            help='Show this help message and exit.'
+        )
+        optional.add_argument('-o', '--output', help='Path to output folder.')
+        optional.add_argument('-n', '--name', help='Name of figure.')
+        optional.add_argument('-f', '--format', help='Format of figure.')
+        optional.add_argument(
+            '--alignments_position',
+            help=(
+                'Orientation of the alignments in the plot.\n' +
+                'Options: `left`, `center`, and `rigth`.\n' +
+                'Default: `left`.'
+            )
+        )
+        optional.add_argument(
+            '--identity_color',
+            help=(
+                'Color of the shadows representing homology regions.\n' +
+                '`Choosing Colormaps in Matplotlib` documentation provides\n' +
+                'a complete list of colors.\n' +
+                'Some options: `Greys`, `Purples`, `Blues`, and `Oranges`.\n' +
+                'Default: `Greys`.'
+            )
+        )
         # Parse command line arguments
         info = parser.parse_args()
 
@@ -661,12 +719,24 @@ class UserInput:
 
     def check_figure_extention(self) -> int:
         """Check if figure extention matches figure format."""
-        extention = self.fig_name.split('.')
+        extention = self.figure_name.split('.')
         if len(extention) == 1:
             return 1
-        if extention[1] != self.fig_format:
+        if extention[1] != self.figure_format:
             sys.exit(f'error: file name extention does no match figure format')
         return 0
+
+    def check_alignments_position(self) -> bool:
+        """Check if parameter alignment position is valid."""
+        position = self.alignments_position
+        if position == "left" or position == "center" or position == "right":
+            return True
+        else:
+            sys.exit(f'error: parameter `alignment_position` is not valid')
+
+    def check_identity_color(self) -> bool:
+        # TODO: implement function
+        pass
 
 def main():
     # Get user input
@@ -691,14 +761,16 @@ def main():
     figure = MakeFigure(
         alignments,
         gb_records,
-        alignments_position="right",
-        identity_color="Blues",
-        add_annotations_genes=True,
+        alignments_position=info.alignments_position,
+        identity_color=info.identity_color,
+        figure_name=info.output_file,
+        figure_format=info.figure_format,
+        add_annotations_genes=False,
         add_annotations_sequences=False,
         y_separation=10,
         homology_padding=0.08
     )
-    figure.make_figure(name=info.output_file, format=info.fig_format)
+    figure.make_figure()
 
 if __name__ == '__main__':
     main()
