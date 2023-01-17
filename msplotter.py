@@ -81,7 +81,7 @@ from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
 
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -433,6 +433,8 @@ class MakeFigure:
         """
         y_distance = ((len(self.alignments) + 1) * self.y_separation)
         # Make colormap for homology regions.
+        print('colormap before testing!')
+        # TODO: check that identity_color is a valid parameter
         cmap = plt.colormaps[self.identity_color]
         # Extract subset of colormap for better representation of homologies
         # and update the `self.identity_color` with this new colormap.
@@ -598,47 +600,14 @@ class UserInput:
     """Store information provided by the user via the command line."""
     def __init__(self):
         # Get user input.
-        info = self.user_input()
-        # Store input files.
-        self.input_files = [Path(document) for document in info.input]
-        # Check input files.
-        self.check_input_files()
-        # Store output folder.
-        if info.output is not None:
-            self.output_folder = Path(info.output)
-        else:
-            self.output_folder = Path('.')
-        # Check output folder.
-        self.check_output_folder()
-        # Store figure name.
-        if info.name is not None:
-            self.figure_name = info.name
-        else:
-            self.figure_name = 'figure_1.svg'
-        # Store figure format.
-        if info.format is not None:
-            self.figure_format = info.format
-        else:
-            self.figure_format = 'svg'
-        # Check that figure name extention matches figure format and make path
-        # for output file.
-        if self.check_figure_extention() == 0:
-            self.output_file = self.output_folder / self.figure_name
-        else:
-            name = self.figure_name + '.' + self.figure_format
-            self.output_file = (self.output_folder / name)
-        # Store alignment position
-        if info.alignments_position is not None:
-            self.alignments_position = info.alignments_position
-        else:
-            self.alignments_position = 'left'
-        # Check if alignment_position is valid
-        self.check_alignments_position()
-        # Store identity color
-        if info.identity_color is not None:
-            self.identity_color = info.identity_color
-        else:
-            self.identity_color = 'Greys'
+        user_info = self.user_input()
+        self.input_files = self.get_input_files(user_info)
+        self.output_folder = self.get_output_folder(user_info)
+        self.figure_name = self.get_figure_name(user_info)
+        self.figure_format = self.get_figure_format(user_info)
+        self.output_file = self.make_output_path()
+        self.alignments_position = self.get_alignments_position(user_info)
+        self.identity_color = self.get_identity_color(user_info)
 
     def user_input(self):
         """
@@ -699,23 +668,55 @@ class UserInput:
 
         return info
 
-    def check_input_files(self) -> bool:
-        """Check if path to input files exists."""
-        for document in self.input_files:
+    def get_input_files(self, user_info) -> list:
+        """Get input files."""
+        input_files = [Path(document) for document in user_info.input]
+        # Check if path to input files exists.
+        for document in input_files:
             if not document.exists():
                 sys.exit(f'error: {document} does not exist')
             if not document.is_file():
                 sys.exit(f'error: {document} is not a file')
-        return True
+        return input_files
 
-    def check_output_folder(self) -> bool:
-        """Check if output folder exists."""
-        if not self.output_folder.exists():
-            sys.exit(f'error: {self.output_folder} does not exist')
-        elif not self.output_folder.is_dir():
-            sys.exit(f'error: {self.output_folder} is not a directory')
+    def get_output_folder(self, user_info) -> Path:
+        """Get output folder from user input and check if exists."""
+        # Get output folder from user
+        if user_info.output is not None:
+            output_folder = Path(user_info.output)
         else:
-            return True
+            output_folder = Path('.')
+        # Check output folder
+        if not output_folder.exists():
+            sys.exit(f'error: {self.output_folder} does not exist')
+        if not output_folder.is_dir():
+            sys.exit(f'error: {self.output_folder} is not a directory')
+        return output_folder
+
+    def get_figure_name(self, user_info) -> str:
+        """Get figure name from user."""
+        if user_info.name is not None:
+            figure_name = user_info.name
+        else:
+            figure_name = 'figure_1.svg'
+        return figure_name
+
+    def get_figure_format(self, user_info) -> str:
+        """Get figure format from user."""
+        if user_info.format is not None:
+            figure_format = user_info.format
+        else:
+            figure_format = 'svg'
+        return figure_format
+
+    def make_output_path(self) -> Path:
+        """Make output path."""
+        if self.check_figure_extention() == 0:
+            output_file = self.output_folder / self.figure_name
+        else:
+            name = self.figure_name + '.' + self.figure_format
+            output_file = self.output_folder / name
+        return output_file
 
     def check_figure_extention(self) -> int:
         """Check if figure extention matches figure format."""
@@ -726,17 +727,24 @@ class UserInput:
             sys.exit(f'error: file name extention does no match figure format')
         return 0
 
-    def check_alignments_position(self) -> bool:
+    def get_alignments_position(self, user_info) -> str:
         """Check if parameter alignment position is valid."""
-        position = self.alignments_position
+        if user_info.alignments_position is not None:
+            position = user_info.alignments_position
+        else:
+            position = 'left'
+        # Check that user enter correct parameter.
         if position == "left" or position == "center" or position == "right":
-            return True
+            return position
         else:
             sys.exit(f'error: parameter `alignment_position` is not valid')
 
-    def check_identity_color(self) -> bool:
-        # TODO: implement function
-        pass
+    def get_identity_color(self, user_info) -> str:
+        if user_info.identity_color is not None:
+            identity_color = user_info.identity_color
+        else:
+            identity_color = 'Greys'
+        return identity_color
 
 def main():
     # Get user input
