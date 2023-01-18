@@ -81,7 +81,7 @@ from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
 
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -433,16 +433,11 @@ class MakeFigure:
         """
         y_distance = ((len(self.alignments) + 1) * self.y_separation)
         # Make colormap for homology regions.
-        print('colormap before testing!')
         # TODO: check that identity_color is a valid parameter
-        cmap = plt.colormaps[self.identity_color]
-        # Extract subset of colormap for better representation of homologies
-        # and update the `self.identity_color` with this new colormap.
-        self.identity_color = self.truncate_colormap(
-            cmap,
-            min_val = 0.0,
-            max_val = 0.75,
-            n = 100
+        cmap = self.make_colormap(
+            identity_color=self.identity_color,
+            min_val=0.0,
+            max_val=1.0,
         )
         # Readjust position of alignment to right or center if requested.
         if self.alignments_position == "right":
@@ -468,10 +463,32 @@ class MakeFigure:
                 ax.fill(
                     xpoints,
                     ypoints,
-                    facecolor=self.identity_color(region.homology),
+                    facecolor=cmap(region.homology),
                     linewidth=0
                 )
             y_distance -= self.y_separation
+
+    def make_colormap(self, identity_color, min_val=0.0, max_val=1.0, n=100):
+        """Make color map for homology regions."""
+        try:
+            cmap = plt.colormaps[identity_color]
+        except KeyError:
+            sys.exit(
+                f"Error: the identity color '{identity_color}' provided is " +
+                "not valid.\nUse the help option to find valid colors or visit:\n" +
+                "https://matplotlib.org/stable/tutorials/colors/colormaps.html\n" +
+                "for a complete list of valid options."
+            )
+        if min_val == 0 and max_val == 1:
+            return cmap
+        else:
+            name = 'trunc_cmap'
+            truncated_cmap = cmap(np.linspace(min_val, max_val, n))
+            new_cmap = colors.LinearSegmentedColormap.from_list(
+                name,
+                truncated_cmap
+            )
+            return new_cmap
 
     def plot_genes(self, ax):
         """
@@ -656,9 +673,9 @@ class UserInput:
         optional.add_argument(
             '--identity_color',
             help=(
-                'Color of the shadows representing homology regions.\n' +
-                '`Choosing Colormaps in Matplotlib` documentation provides\n' +
-                'a complete list of colors.\n' +
+                'Color map representing homology regions.\n' +
+                'For a complete list of valid options visit:\n' +
+                'https://matplotlib.org/stable/tutorials/colors/colormaps.html\n' +
                 'Some options: `Greys`, `Purples`, `Blues`, and `Oranges`.\n' +
                 'Default: `Greys`.'
             )
