@@ -81,7 +81,9 @@ from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
 
-__version__ = '0.1.4'
+from arrows import Arrow
+
+__version__ = '0.1.5'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -234,6 +236,8 @@ class RegionAlignmentResult:
         self.align_len = align_len
         self.homology = identity / align_len
 
+
+
 def make_fasta_file(gb_files):
     """Make fasta files from GenBank files and save them in local directory.
 
@@ -382,15 +386,11 @@ class MakeFigure:
                 region.hit_to = region.hit_to + shift_h
 
     def plot_dna_sequences(self, ax):
-        """
-        Plot lines that represent DNA sequences.
+        """Plot lines that represent DNA sequences.
 
         Parameters
         ----------
-        gb_records : list
-            List of GenBankRecord classes
-        y_separation : int
-            Distance to separate genes in the y axis
+        ax : axes, matplotlib object
         """
         y_distance = len(self.gb_records) * self.y_separation
         # Readjust position sequences to the right or center if requested.
@@ -412,60 +412,6 @@ class MakeFigure:
                 linewidth=3,
                 zorder=1
             )
-            y_distance -= self.y_separation
-
-    def truncate_colormap(self, cmap, min_val=0.0, max_val=1.0, n=100):
-        name = 'trunc_cmap'
-        truncated_cmap = cmap(np.linspace(min_val, max_val, n))
-        new_cmap = colors.LinearSegmentedColormap.from_list(
-            name,
-            truncated_cmap
-        )
-        return new_cmap
-
-    def plot_homology_regions(self, ax):
-        """
-        Plot homology regions of aligned sequences.
-
-        Paramenters
-        -----------
-        alignment : BlastnAlignment class
-        """
-        y_distance = ((len(self.alignments) + 1) * self.y_separation)
-        # Make colormap for homology regions.
-        # TODO: check that identity_color is a valid parameter
-        cmap = self.make_colormap(
-            identity_color=self.identity_color,
-            min_val=0.0,
-            max_val=1.0,
-        )
-        # Readjust position of alignment to right or center if requested.
-        if self.alignments_position == "right":
-            self.adjust_positions_alignments_right()
-        elif self.alignments_position == "center":
-            print("alignments center!")
-            self.adjust_positions_alignments_center()
-        # Plot regions with homology.
-        for alignment in self.alignments:
-            for region in alignment.regions:
-                # Get region's coordinates.
-                x1 = region.query_from
-                x2 = region.query_to
-                x3 = region.hit_to
-                x4 = region.hit_from
-                y1 = y_distance - self.homology_padding
-                y2 = y_distance - self.homology_padding
-                y3 = y_distance - self.y_separation + self.homology_padding
-                y4 = y_distance - self.y_separation + self.homology_padding
-                xpoints = np.array([x1, x2, x3, x4, x1])
-                ypoints = np.array([y1, y2, y3, y4, y1])
-                ax.plot(xpoints, ypoints, linewidth=0)
-                ax.fill(
-                    xpoints,
-                    ypoints,
-                    facecolor=cmap(region.homology),
-                    linewidth=0
-                )
             y_distance -= self.y_separation
 
     def make_colormap(self, identity_color, min_val=0.0, max_val=1.0, n=100):
@@ -490,16 +436,54 @@ class MakeFigure:
             )
             return new_cmap
 
-    def plot_genes(self, ax):
-        """
-        Plot genes.
+    def plot_homology_regions(self, ax):
+        """Plot homology regions of aligned sequences.
 
         Parameters
         ----------
-        gb_records : list
-            List of GenBankRecord classes
-        y_separation : int
-            Distance to separate genes in the y axis
+        ax : axes, matplotlib object
+        """
+        y_distance = ((len(self.alignments) + 1) * self.y_separation)
+        # Make colormap for homology regions.
+        cmap = self.make_colormap(
+            identity_color=self.identity_color,
+            min_val=0.0,
+            max_val=1.0,
+        )
+        # Readjust position of alignment to right or center if requested.
+        if self.alignments_position == "right":
+            self.adjust_positions_alignments_right()
+        elif self.alignments_position == "center":
+            self.adjust_positions_alignments_center()
+        # Plot regions with homology.
+        for alignment in self.alignments:
+            for region in alignment.regions:
+                # Get region's coordinates.
+                x1 = region.query_from
+                x2 = region.query_to
+                x3 = region.hit_to
+                x4 = region.hit_from
+                y1 = y_distance - self.homology_padding
+                y2 = y_distance - self.homology_padding
+                y3 = y_distance - self.y_separation + self.homology_padding
+                y4 = y_distance - self.y_separation + self.homology_padding
+                xpoints = np.array([x1, x2, x3, x4, x1])
+                ypoints = np.array([y1, y2, y3, y4, y1])
+                ax.plot(xpoints, ypoints, linewidth=0)
+                ax.fill(
+                    xpoints,
+                    ypoints,
+                    facecolor=cmap(region.homology),
+                    linewidth=0
+                )
+            y_distance -= self.y_separation
+
+    def plot_genes(self, ax):
+        """Plot genes.
+
+        Parameters
+        ----------
+        ax : axes, matplotlib object
         """
         # Separation of genes of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
@@ -520,16 +504,37 @@ class MakeFigure:
                 ax.add_patch(arrow)
             y_distance -= self.y_separation
 
-    def annotate_dna_sequences(self, ax):
-        """
-        Annotate DNA sequences.
+    def plot_arrows(self, ax):
+        """Plot arrows to reprent genes.
 
         Parameters
         ----------
-        gb_records : list
-            List of GenBankRecord classes
-        y_separation : int
-            Distance to separate genes in the y axis
+        ax : axes, matplotlib object
+        """
+        # Separation of genes of each sequence in the y axis.
+        y_distance = len(self.gb_records) * self.y_separation
+        # ratio head_height vs lenght of longest sequence
+        ratio = 0.02
+        head_height = self.size_longest_sequence * ratio
+        # Iterate over GenBankRecords and plot genes.
+        for gb_record in self.gb_records:
+            for gene in gb_record.cds:
+                arrow = Arrow(
+                    x1=gene.start,
+                    x2=gene.end,
+                    y=y_distance,
+                    head_height=head_height
+                )
+                x_values, y_values = arrow.get_coordinates()
+                ax.fill(x_values, y_values, gene.color)
+            y_distance -= self.y_separation
+
+    def annotate_dna_sequences(self, ax):
+        """Annotate DNA sequences.
+
+        Parameters
+        ----------
+        ax : axes, matplotlib object
         """
         # Separation of annotations of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
@@ -547,9 +552,7 @@ class MakeFigure:
             y_distance -= self.y_separation
 
     def annotate_genes(self, ax, gb_record, y_distance):
-        """
-        Annotate genes of DNA sequence.
-        """
+        """Annotate genes of DNA sequence."""
         # Annotate genes of first DNA sequence.
         for gene in gb_record.cds:
             location_annotation = (gene.start + gene.end) / 2
@@ -584,8 +587,8 @@ class MakeFigure:
             orientation='horizontal'
             # boundaries=np.array([0.4, 1])
         )
-        # Plot genes
-        self.plot_genes(ax)
+        # Plot genes using the Arrow class
+        self.plot_arrows(ax)
         # Annotate genes
         if self.add_annotations_genes:
             # Annotate genes first sequence
@@ -793,7 +796,7 @@ def main():
         add_annotations_genes=False,
         add_annotations_sequences=False,
         y_separation=10,
-        homology_padding=0.08
+        homology_padding=0.1
     )
     figure.make_figure()
 
