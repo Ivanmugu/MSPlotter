@@ -68,7 +68,6 @@ Credits
 import argparse
 import os
 import sys
-import textwrap
 from pathlib import Path
 
 import matplotlib as mpl
@@ -83,7 +82,7 @@ from Bio.SeqRecord import SeqRecord
 
 from arrows import Arrow
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -317,7 +316,7 @@ class MakeFigure:
         self, alignments, gb_records, alignments_position="left",
         add_annotations_genes=False, add_annotations_sequences=False,
         sequence_name="accession", y_separation=10, sequence_color="black",
-        sequence_width=3, identity_color="Blues", homology_padding=0.06,
+        sequence_width=3, identity_color="Greys", homology_padding=0.06,
         figure_name="figure_1.svg", figure_format="svg"
     ):
         self.alignments = alignments
@@ -330,10 +329,25 @@ class MakeFigure:
         self.sequence_color = sequence_color
         self.sequence_width = sequence_width
         self.identity_color = identity_color
+        self.color_map = self.make_colormap(
+            identity_color=identity_color, min_val=0.0, max_val=0.75, n=100
+        )
         self.homology_padding = y_separation * homology_padding
         self.size_longest_sequence = self.get_longest_sequence()
         self.figure_name = figure_name
         self.figure_format = figure_format
+
+    def get_lowest_homology(self) -> tuple:
+        """Get the lowest and highest homologies in the alignment."""
+        lowest = 100
+        highest = 0
+        for alignment in self.alignments:
+            for region in alignment.regions:
+                if region.homology < lowest:
+                    lowest = region.homology
+                if region.homology > highest:
+                    highest = region.homology
+        return (lowest, highest)
 
     def get_longest_sequence(self) -> int:
         """Find the longest sequence in gb_records."""
@@ -444,12 +458,6 @@ class MakeFigure:
         ax : axes, matplotlib object
         """
         y_distance = ((len(self.alignments) + 1) * self.y_separation)
-        # Make colormap for homology regions.
-        cmap = self.make_colormap(
-            identity_color=self.identity_color,
-            min_val=0.0,
-            max_val=1.0,
-        )
         # Readjust position of alignment to right or center if requested.
         if self.alignments_position == "right":
             self.adjust_positions_alignments_right()
@@ -473,10 +481,49 @@ class MakeFigure:
                 ax.fill(
                     xpoints,
                     ypoints,
-                    facecolor=cmap(region.homology),
+                    facecolor=self.color_map(region.homology),
                     linewidth=0
                 )
             y_distance -= self.y_separation
+
+    def plot_colorbar(self, fig, ax):
+        """Plot color bar for homology regions.
+
+        Parameters
+        ----------
+        fig : figure, matplotlib object
+        ax : axes, matplotlib object
+        """
+        norm = mpl.colors.Normalize(vmin=0, vmax=100)
+        # Make colorbar boundaries
+        lowest_homology, highest_homology = self.get_lowest_homology()
+        lowest_homology = int(round(lowest_homology * 100))
+        highest_homology = int(round(highest_homology * 100))
+        print("lowest and highest plot colorbar:", lowest_homology, highest_homology)
+        if lowest_homology != highest_homology:
+            boundaries = np.linspace(lowest_homology, highest_homology, 100)
+            fig.colorbar(
+                plt.cm.ScalarMappable(norm=norm, cmap=self.color_map),
+                ax=ax,
+                fraction=0.02,
+                shrink=0.4,
+                pad=0.1,
+                label='Identity (%)',
+                orientation='horizontal',
+                boundaries=boundaries,
+                ticks=[lowest_homology, highest_homology]
+            )
+        else:
+            homology_path = mpatches.Patch(
+                color=self.color_map(highest_homology/100),
+                label=f'{highest_homology} (identity %)',
+            )
+            ax.legend(
+                bbox_to_anchor = (0.5, -0.1),
+                loc="lower center",
+                handles=[homology_path],
+                frameon=False,
+            )
 
     def plot_genes(self, ax):
         """Plot genes.
@@ -576,17 +623,7 @@ class MakeFigure:
         # Plot homology regions.
         self.plot_homology_regions(ax)
         # Plot colorbar
-        norm = mpl.colors.Normalize(vmin=0, vmax=100)
-        fig.colorbar(
-            plt.cm.ScalarMappable(norm=norm, cmap=self.identity_color),
-            ax=ax,
-            fraction=0.02,
-            shrink=0.4,
-            pad=0.1,
-            # label='Identity (%)',
-            orientation='horizontal'
-            # boundaries=np.array([0.4, 1])
-        )
+        self.plot_colorbar(fig, ax)
         # Plot genes using the Arrow class
         self.plot_arrows(ax)
         # Annotate genes
