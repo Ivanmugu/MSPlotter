@@ -82,7 +82,7 @@ from Bio.SeqRecord import SeqRecord
 
 from arrows import Arrow
 
-__version__ = '0.1.7'
+__version__ = '0.1.8'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -235,8 +235,6 @@ class RegionAlignmentResult:
         self.align_len = align_len
         self.homology = identity / align_len
 
-
-
 def make_fasta_file(gb_files):
     """Make fasta files from GenBank files and save them in local directory.
 
@@ -317,6 +315,8 @@ class MakeFigure:
     ----------
     alignments : list
         List of `BlastnAlignment` classes created from xml blastn results.
+    num_alignments : int
+        Number of alignments.
     gb_records : list
         List of `GenBankRecord` classes created from gb files.
     alignments_position : str
@@ -357,6 +357,7 @@ class MakeFigure:
         figure_name="figure_1.svg", figure_format="svg"
     ):
         self.alignments = alignments
+        self.num_alignments = len(alignments)
         self.gb_records = gb_records
         self.alignments_position = alignments_position
         self.add_annotations_genes = add_annotations_genes
@@ -555,13 +556,14 @@ class MakeFigure:
         else:
             homology_path = mpatches.Patch(
                 color=self.color_map(highest_homology/100),
-                label=f'{highest_homology} (identity %)',
+                label=f'{highest_homology}',
             )
             ax.legend(
-                bbox_to_anchor = (0.5, -0.1),
-                loc="lower center",
+                # bbox_to_anchor = (0.5, -0.1),
+                # loc="lower center",
                 handles=[homology_path],
                 frameon=False,
+                title="Identity (%)"
             )
 
     def plot_genes(self, ax):
@@ -651,9 +653,21 @@ class MakeFigure:
                 ha="center"
             )
 
+    def determine_figure_size(self, num_alignments) -> tuple:
+        """Determine figure size."""
+        # The Matplotlib default figure size is 6.4 x 4.8
+        width = 6.4
+        height = 4.8
+        # Increase height after four alignments
+        if num_alignments > 4:
+            height = height * (num_alignments / 4)
+        return (width, height)
+
     def make_figure(self):
-        # Change figure size. Default size is 6.4 x 4.8
-        fig, ax = plt.subplots(figsize=(8,4.8))
+        # Determine figure size by number of alignments.
+        width, height = self.determine_figure_size(self.num_alignments)
+        # Change figure size. Matplotlib default size is 6.4 x 4.8
+        fig, ax = plt.subplots(figsize=(width,height))
         # Plot DNA sequences.
         self.plot_dna_sequences(ax)
         # Annotate DNA sequences.
@@ -679,10 +693,6 @@ class MakeFigure:
                 self.gb_records[len(self.gb_records) - 1],
                 self.y_separation
             )
-        # # Increase limits in y axis ... I need to fix this part!
-        # plt.ylim(
-        #     self.y_separation - 5, (len(gb_files) * self.y_separation) + 5
-        # )
         # Remove the x-y axis
         plt.axis('off')
         # Adjust the padding between and around subplots.
@@ -868,9 +878,9 @@ class UserInput:
         return identity_color
 
 def main():
-    # Get user input
+    # Get user input.
     info = UserInput()
-    # Get list of input files' paths
+    # Get list of input files' paths.
     gb_files = info.input_files
     # Create fasta files for BLASTing.
     faa_files = make_fasta_file(gb_files)
@@ -892,9 +902,6 @@ def main():
         identity_color=info.identity_color,
         figure_name=info.output_file,
         figure_format=info.figure_format,
-        add_annotations_genes=False,
-        add_annotations_sequences=False,
-        y_separation=10,
     )
     figure.make_figure()
 
