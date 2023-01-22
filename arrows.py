@@ -12,13 +12,35 @@
 """Class for plotting arrows horizontally.
 
 It can be used to reprent genes.
+
+TODO: Make a graphical represention of the meaning of the x and y values for 
+      plotting the arrows. Provide and extra document with the graphical
+      representation.
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 class Arrow:
-    """Make coordinates to represent an arrow horizontally."""
+    """Make coordinates to represent an arrow horizontally.
+
+    Attributes
+    ----------
+    x1 : int
+        Start postion in the x-axis.
+    x2 : int
+        End position in the x-axis.
+    y : int
+        Position in the y-axis.
+    ratio_tail_head_width : float
+        Ration between tail's width and arrow's head width (default: 0.5).
+    head_width : int
+        Head width. It is de distance the y-axis between the two vertexes of
+        the triangle that makes the head.
+    head_height : int
+        Head height. It is the distance in the x-axis between the base and the
+        vertex of the triangle that makes the head.
+    """
     def __init__(
         self, x1, x2, y, ratio_tail_head_width=0.5, head_width=2,
         head_height=200,
@@ -35,12 +57,14 @@ class Arrow:
     def coordinates_arrow_forward(self):
         """Get forward arrow shape coordinates horizontally."""
         height = self.x2 - self.x1
+        # If total height is smaller or equal to the arrow's head hight plot
+        # only head
         if height <= self.head_height:
-            x_1 = self.x2 - self.head_height
-            x_2 = self.x2 - self.head_height
+            x_1 = self.x1
+            x_2 = self.x1
             x_3 = self.x2
-            x_4 = self.x2 - self.head_height
-            x_5 = self.x2 - self.head_height
+            x_4 = self.x1
+            x_5 = self.x1
             y_1 = self.y
             y_2 = self.y + (self.head_width * 0.5)
             y_3 = self.y
@@ -85,12 +109,14 @@ class Arrow:
     def coordinates_arrow_reverse(self):
         """Get reverse arrow shape coordinates horizontally."""
         height = self.x1 - self.x2
+        # If total height is smaller or equal to the arrow's head hight plot
+        # only head
         if height <= self.head_height:
-            x_1 = self.x2 + self.head_height
-            x_2 = self.x2 + self.head_height
+            x_1 = self.x1
+            x_2 = self.x1
             x_3 = self.x2
-            x_4 = self.x2 + self.head_height
-            x_5 = self.x2 + self.head_height
+            x_4 = self.x1
+            x_5 = self.x1
             y_1 = self.y
             y_2 = self.y - (self.head_width * 0.5)
             y_3 = self.y
@@ -150,6 +176,10 @@ if __name__ == "__main__":
 
     arrow2 = Arrow(x1=1250, x2=250, y=20)
     x_values, y_values = arrow2.get_coordinates()
+    plt.fill(x_values, y_values, 'r')
+
+    arrow3 = Arrow(x1=550, x2=500, y=30)
+    x_values, y_values = arrow3.get_coordinates()
     plt.fill(x_values, y_values, 'r')
 
     plt.show()
