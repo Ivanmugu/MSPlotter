@@ -82,7 +82,7 @@ from Bio.SeqRecord import SeqRecord
 
 from arrows import Arrow
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -311,19 +311,56 @@ def get_gb_records(gb_files: list) -> list:
     return gb_records
 
 class MakeFigure:
-    """Store relevant variables to plot the figure."""
+    """Store relevant variables to plot the figure.
+
+    Attributes
+    ----------
+    alignments : list
+        List of `BlastnAlignment` classes created from xml blastn results.
+    gb_records : list
+        List of `GenBankRecord` classes created from gb files.
+    alignments_position : str
+        Position of the alignments in the plot (default: `left`).
+    add_annotations_genes : Bool
+        Annotate genes in plot (default: False).
+    add_annotations_sequences : Bool
+        Annotate sequences in plot (default: False).
+    sequence_name : str
+        String to access either `name` or `accession` from GenBankRecord class
+        (default: `accession`). Either `name` or `accession` is used to
+        annotate the sequence if `add_annotations_sequences` attribute is True.
+    y_separation : int
+        Distance between sequences in the y-axis (default: 10).
+    sequence_color : str
+        Color used for lines representing sequences (default: `black`). You can
+        use any color name allowed by `Matplotlib`.
+    sequence_width : int
+        Width of lines representing sequences (default: 3).
+    identity_color : str
+        Color used to represent regions of homology (default: `Greys`). This
+        color represent a `Matplotlib` colormap. Therefore, you should provide
+        a valid colormap name.
+    homology_padding : float
+        Padding between lines representing sequences and regions of homology
+        (default: 0.1). The number provided represents a fraction of the
+        y_separation.
+    figure_name : str
+        Name to save figure (default: `figure_1.svg`).
+    figure_format : str
+        Format to save figure (default: `svf`).
+    """
     def __init__(
         self, alignments, gb_records, alignments_position="left",
         add_annotations_genes=False, add_annotations_sequences=False,
         sequence_name="accession", y_separation=10, sequence_color="black",
-        sequence_width=3, identity_color="Greys", homology_padding=0.06,
+        sequence_width=3, identity_color="Greys", homology_padding=0.1,
         figure_name="figure_1.svg", figure_format="svg"
     ):
         self.alignments = alignments
         self.gb_records = gb_records
         self.alignments_position = alignments_position
-        self.add_annotations_sequences = add_annotations_sequences
         self.add_annotations_genes = add_annotations_genes
+        self.add_annotations_sequences = add_annotations_sequences
         self.sequence_name = sequence_name
         self.y_separation = y_separation
         self.sequence_color = sequence_color
@@ -493,6 +530,8 @@ class MakeFigure:
         ----------
         fig : figure, matplotlib object
         ax : axes, matplotlib object
+
+        TODO: Make custom colorbar figure legend with Line2D
         """
         norm = mpl.colors.Normalize(vmin=0, vmax=100)
         # Make colorbar boundaries
@@ -654,7 +693,25 @@ class MakeFigure:
         plt.show()
 
 class UserInput:
-    """Store information provided by the user via the command line."""
+    """Store information provided user via the command line.
+
+    Attributes
+    ----------
+    input_files : list
+        List of input files' paths as Path objects.
+    output_folder : Path object
+        Path to output folder (default: current folder).
+    figure_name : str
+        Name of figure (default: `figure_1.svg`).
+    figure_format : str
+        Format to make and save figure (default: `svg`).
+    output_file : Path object
+        Path, including the name and format, of figure.
+    alignments_position : str
+        Position of the alignments in plot (default: `left`).
+    identity_color : str
+        Color of shadows representing homology regions (default: `Greys`).
+    """
     def __init__(self):
         # Get user input.
         user_info = self.user_input()
@@ -797,6 +854,13 @@ class UserInput:
             sys.exit(f'error: parameter `alignment_position` is not valid')
 
     def get_identity_color(self, user_info) -> str:
+        """Get color that represent homolgoy regions from user.
+
+        Note
+        ----
+        The MakeFigure class with the function make_colormap will check color
+        input.
+        """
         if user_info.identity_color is not None:
             identity_color = user_info.identity_color
         else:
@@ -806,10 +870,8 @@ class UserInput:
 def main():
     # Get user input
     info = UserInput()
+    # Get list of input files' paths
     gb_files = info.input_files
-    # gb_files = ['seq1.gb', 'seq2.gb', 'seq3.gb', 'seq4.gb']
-    # gb_files = ['CP072204.gb', 'SW4848.gb','CP000645.gb']
-
     # Create fasta files for BLASTing.
     faa_files = make_fasta_file(gb_files)
     # Run blastn locally.
@@ -833,7 +895,6 @@ def main():
         add_annotations_genes=False,
         add_annotations_sequences=False,
         y_separation=10,
-        homology_padding=0.1
     )
     figure.make_figure()
 
