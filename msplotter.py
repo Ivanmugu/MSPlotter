@@ -62,6 +62,7 @@ Credits
 -------
 1. Inspired by easyfig
         Sullivan et al (2011) Bioinformatics 27(7):1009-1010
+        https://mjsull.github.io/Easyfig/
 """
 
 
@@ -82,13 +83,15 @@ from Bio.SeqRecord import SeqRecord
 
 from arrows import Arrow
 
-__version__ = '0.1.8'
+__version__ = '0.1.9'
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
 
     Attributes
     ----------
+    file_name : str
+        file name.
     name : str
         Sequence name shown next to the `LOCUS` tag.
     accession : str
@@ -112,7 +115,12 @@ class GenBankRecord:
     """
 
     def __init__(self, file_name):
+        """
+        file_name : Path oject
+            Path to file.
+        """
         record = SeqIO.read(file_name, 'genbank')
+        self.file_name = file_name.stem
         self.name = record.name
         self.accession = record.id
         self.description = record.description
@@ -351,7 +359,7 @@ class MakeFigure:
     """
     def __init__(
         self, alignments, gb_records, alignments_position="left",
-        add_annotations_genes=False, add_annotations_sequences=False,
+        annotate_genes=False, annotate_sequences=False,
         sequence_name="accession", y_separation=10, sequence_color="black",
         sequence_width=3, identity_color="Greys", homology_padding=0.1,
         figure_name="figure_1.svg", figure_format="svg"
@@ -360,8 +368,8 @@ class MakeFigure:
         self.num_alignments = len(alignments)
         self.gb_records = gb_records
         self.alignments_position = alignments_position
-        self.add_annotations_genes = add_annotations_genes
-        self.add_annotations_sequences = add_annotations_sequences
+        self.annotate_genes = annotate_genes
+        self.annotate_sequences = annotate_sequences
         self.sequence_name = sequence_name
         self.y_separation = y_separation
         self.sequence_color = sequence_color
@@ -626,11 +634,19 @@ class MakeFigure:
         """
         # Separation of annotations of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
+        # Annotate sequences.
         for gb_record in self.gb_records:
+            # Check if sequence name is valis.
             if self.sequence_name == 'accession':
                 sequence_name = gb_record.accession
-            else:
+            elif self.sequence_name == 'name':
                 sequence_name = gb_record.name
+            elif self.sequence_name == 'fname':
+                sequence_name = gb_record.file_name
+            else:
+                sys.exit(
+                    f'Error: invalid sequence name `{sequence_name}` for ' +
+                    'annotating sequences.')
             ax.annotate(
                 sequence_name,
                 xy=(gb_record.sequence_end, y_distance),
@@ -639,7 +655,7 @@ class MakeFigure:
             )
             y_distance -= self.y_separation
 
-    def annotate_genes(self, ax, gb_record, y_distance):
+    def annotate_gene_sequences(self, ax, gb_record, y_distance):
         """Annotate genes of DNA sequence."""
         # Annotate genes of first DNA sequence.
         for gene in gb_record.cds:
@@ -671,7 +687,7 @@ class MakeFigure:
         # Plot DNA sequences.
         self.plot_dna_sequences(ax)
         # Annotate DNA sequences.
-        if self.add_annotations_sequences:
+        if self.annotate_sequences:
             self.annotate_dna_sequences(ax)
         # Plot homology regions.
         self.plot_homology_regions(ax)
@@ -680,15 +696,15 @@ class MakeFigure:
         # Plot genes using the Arrow class
         self.plot_arrows(ax)
         # Annotate genes
-        if self.add_annotations_genes:
+        if self.annotate_genes:
             # Annotate genes first sequence
-            self.annotate_genes(
+            self.annotate_gene_sequences(
                 ax,
                 self.gb_records[0],
                 self.y_separation * len(self.gb_records)
             )
             # Annotate genes last sequence
-            self.annotate_genes(
+            self.annotate_gene_sequences(
                 ax,
                 self.gb_records[len(self.gb_records) - 1],
                 self.y_separation
@@ -724,14 +740,16 @@ class UserInput:
     """
     def __init__(self):
         # Get user input.
-        user_info = self.user_input()
-        self.input_files = self.get_input_files(user_info)
-        self.output_folder = self.get_output_folder(user_info)
-        self.figure_name = self.get_figure_name(user_info)
-        self.figure_format = self.get_figure_format(user_info)
+        info = self.user_input()
+        self.input_files = self.get_input_files(info)
+        self.output_folder = self.get_output_folder(info)
+        self.figure_name = self.get_figure_name(info)
+        self.figure_format = self.get_figure_format(info)
         self.output_file = self.make_output_path()
-        self.alignments_position = self.get_alignments_position(user_info)
-        self.identity_color = self.get_identity_color(user_info)
+        self.alignments_position = self.get_alignments_position(info)
+        self.identity_color = self.get_identity_color(info)
+        self.annotate_sequences = self.get_annotate_sequences_info(info)[0]
+        self.sequence_name = self.get_annotate_sequences_info(info)[1]
 
     def user_input(self):
         """
@@ -787,13 +805,24 @@ class UserInput:
                 'Default: `Greys`.'
             )
         )
+        optional.add_argument(
+            '--annotate_sequences', nargs='?', const='accession',
+            help=(
+                'Annotate sequences in the plot. If argument is not provided,\n' +
+                'sequences will be annotated using `accession` numbers.\n' +
+                'Options: `accession`, `name`, and `fname`.\n' +
+                '`accession` and `name` are obtained from the `ACCESSION`\n' +
+                'and `LOCUS` gb file tags, repectively.\n' +
+                '`fname` is the file name.'
+            )
+        )
         # Parse command line arguments
         info = parser.parse_args()
 
         return info
 
     def get_input_files(self, user_info) -> list:
-        """Get input files."""
+        """Get input files and return a list of Path objects."""
         input_files = [Path(document) for document in user_info.input]
         # Check if path to input files exists.
         for document in input_files:
@@ -861,7 +890,10 @@ class UserInput:
         if position == "left" or position == "center" or position == "right":
             return position
         else:
-            sys.exit(f'error: parameter `alignment_position` is not valid')
+            sys.exit(
+            f'Error: parameter `alignment_position: {position}` is not valid.\n' +
+            'Valid parameters are: `left`, `center`, or `right`.'
+            )
 
     def get_identity_color(self, user_info) -> str:
         """Get color that represent homolgoy regions from user.
@@ -876,6 +908,19 @@ class UserInput:
         else:
             identity_color = 'Greys'
         return identity_color
+
+    def get_annotate_sequences_info(self, user_info) -> str:
+        """Get information to annotate sequences in plot."""
+        name = user_info.annotate_sequences
+        if name is None:
+            return (False, '')
+        if name == 'accession' or name == 'name' or name == 'fname':
+            return (True, name)
+        else:
+            sys.exit(
+                f'Error: parameter `annotate_sequence: {name}` is not valid.\n' +
+                'Valid parameter are: `accession` or `name`.'
+            )
 
 def main():
     # Get user input.
@@ -902,6 +947,8 @@ def main():
         identity_color=info.identity_color,
         figure_name=info.output_file,
         figure_format=info.figure_format,
+        annotate_sequences=info.annotate_sequences,
+        sequence_name=info.sequence_name
     )
     figure.make_figure()
 
