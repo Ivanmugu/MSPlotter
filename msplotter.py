@@ -1,22 +1,22 @@
 # =============================================================================
 # BSD 3-Clause License
-# 
+#
 # Copyright (c) 2022, Ivan Munoz Gutierrez
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-# 
+#
 # 1. Redistributions of source code must retain the above copyright notice,
 # this list of conditions and the following disclaimer.
-# 
+#
 # 2. Redistributions in binary form must reproduce the above copyright notice,
 # this list of conditions and the following disclaimer in the documentation
 # and/or other materials provided with the distribution.
-# 
+#
 # 3. Neither the name of the copyright holder nor the names of its contributors
 # may be used to endorse or promote products derived from this software without
 # specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 # AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 # IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -83,7 +83,8 @@ from Bio.SeqRecord import SeqRecord
 
 from arrows import Arrow
 
-__version__ = '0.1.9'
+__version__ = '0.1.10'
+
 
 class GenBankRecord:
     """Store relevant info from a GenBank file.
@@ -147,7 +148,7 @@ class GenBankRecord:
             if feature.type != 'CDS':
                 continue
             product = feature.qualifiers.get('product', None)
-            if product != None:
+            if product is None:
                 product = product[0]
             if feature.qualifiers.get('Color', None) is None:
                 color = '#ffff00'    # Make yellow default color
@@ -166,6 +167,7 @@ class GenBankRecord:
             ))
         return coding_sequences
 
+
 class CodingSequence:
     """Store Coding Sequence (CDS) information from gb file."""
     def __init__(self, product, start, end, strand, color):
@@ -174,6 +176,7 @@ class CodingSequence:
         self.end = int(end)
         self.strand = int(strand)
         self.color = color
+
 
 class BlastnAlignment:
     """Store blastn alignment results.
@@ -228,6 +231,7 @@ class BlastnAlignment:
             ))
         return regions
 
+
 class RegionAlignmentResult:
     """Save blastn results of region that aligned."""
     def __init__(
@@ -243,6 +247,7 @@ class RegionAlignmentResult:
         self.align_len = align_len
         self.homology = identity / align_len
 
+
 def make_fasta_file(gb_files):
     """Make fasta files from GenBank files and save them in local directory.
 
@@ -250,7 +255,7 @@ def make_fasta_file(gb_files):
     ----------
     gb_files : list
         List of GenBank files.
-    
+
     Returns
     -------
     faa_files : list
@@ -269,6 +274,7 @@ def make_fasta_file(gb_files):
         faa_files.append(faa_name)
     return faa_files
 
+
 def run_blastn(faa_files):
     """Run blastn locally and create xml result file(s).
 
@@ -276,7 +282,7 @@ def run_blastn(faa_files):
     ----------
     faa_files : list
         List of fasta files.
-    
+
     Returns
     -------
     results : list
@@ -298,6 +304,7 @@ def run_blastn(faa_files):
         print(stdout + '\n' + stderr)
     return results
 
+
 def delete_files(documents: list) -> None:
     """Delete the files from `documents` list."""
     for document in documents:
@@ -306,15 +313,18 @@ def delete_files(documents: list) -> None:
         else:
             print(f"File {document} does not exist")
 
+
 def get_alignment_records(alignment_files: list) -> list:
     """Parse xml alignment files and make list of `BlastnAlignment` classes."""
     alignments = [BlastnAlignment(alignment) for alignment in alignment_files]
     return alignments
 
+
 def get_gb_records(gb_files: list) -> list:
     """Parse gb files and make list of `GenBankRecord` classes."""
     gb_records = [GenBankRecord(gb_file) for gb_file in gb_files]
     return gb_records
+
 
 class MakeFigure:
     """Store relevant variables to plot the figure.
@@ -352,17 +362,19 @@ class MakeFigure:
         Padding between lines representing sequences and regions of homology
         (default: 0.1). The number provided represents a fraction of the
         y_separation.
+    save_figure : bool
+        Save plotted figure (deault: `True`).
     figure_name : str
-        Name to save figure (default: `figure_1.svg`).
+        Name to save figure (default: `figure_1.pdf`).
     figure_format : str
-        Format to save figure (default: `svf`).
+        Format to save figure (default: `pdf`).
     """
     def __init__(
         self, alignments, gb_records, alignments_position="left",
         annotate_genes=False, annotate_sequences=False,
         sequence_name="accession", y_separation=10, sequence_color="black",
         sequence_width=3, identity_color="Greys", homology_padding=0.1,
-        figure_name="figure_1.svg", figure_format="svg"
+        figure_name=None, figure_format=None
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
@@ -382,6 +394,7 @@ class MakeFigure:
         self.size_longest_sequence = self.get_longest_sequence()
         self.figure_name = figure_name
         self.figure_format = figure_format
+        self.save_figure = self.check_save_figure()
 
     def get_lowest_homology(self) -> tuple:
         """Get the lowest and highest homologies in the alignment."""
@@ -481,7 +494,8 @@ class MakeFigure:
         except KeyError:
             sys.exit(
                 f"Error: the identity color '{identity_color}' provided is " +
-                "not valid.\nUse the help option to find valid colors or visit:\n" +
+                "not valid.\nUse the help option to find valid colors or " +
+                "visit:\n" +
                 "https://matplotlib.org/stable/tutorials/colors/colormaps.html\n" +
                 "for a complete list of valid options."
             )
@@ -547,7 +561,10 @@ class MakeFigure:
         lowest_homology, highest_homology = self.get_lowest_homology()
         lowest_homology = int(round(lowest_homology * 100))
         highest_homology = int(round(highest_homology * 100))
-        print("lowest and highest plot colorbar:", lowest_homology, highest_homology)
+        print(
+            "lowest and highest plot colorbar:",
+            lowest_homology, highest_homology
+        )
         if lowest_homology != highest_homology:
             boundaries = np.linspace(lowest_homology, highest_homology, 100)
             fig.colorbar(
@@ -683,7 +700,7 @@ class MakeFigure:
         # Determine figure size by number of alignments.
         width, height = self.determine_figure_size(self.num_alignments)
         # Change figure size. Matplotlib default size is 6.4 x 4.8
-        fig, ax = plt.subplots(figsize=(width,height))
+        fig, ax = plt.subplots(figsize=(width, height))
         # Plot DNA sequences.
         self.plot_dna_sequences(ax)
         # Annotate DNA sequences.
@@ -709,14 +726,30 @@ class MakeFigure:
                 self.gb_records[len(self.gb_records) - 1],
                 self.y_separation
             )
+
+    def check_save_figure(self) -> bool:
+        """Check if save figure is True."""
+        if (self.figure_format is None) and (self.figure_name is None):
+            return False
+        else:
+            return True
+
+    def save_plot(self):
+        """Save plot."""
+        plt.savefig(fname=self.figure_name, format=self.figure_format)
+
+    def display_figure(self):
+        """Display and save figure."""
         # Remove the x-y axis
         plt.axis('off')
         # Adjust the padding between and around subplots.
         plt.tight_layout()
-        # Save figure as svg
-        plt.savefig(fname=self.figure_name, format=self.figure_format)
+        # Save figure
+        if self.save_figure:
+            self.save_plot()
         # Show plot
         plt.show()
+
 
 class UserInput:
     """Store information provided user via the command line.
@@ -740,16 +773,17 @@ class UserInput:
     """
     def __init__(self):
         # Get user input.
-        info = self.user_input()
-        self.input_files = self.get_input_files(info)
-        self.output_folder = self.get_output_folder(info)
-        self.figure_name = self.get_figure_name(info)
-        self.figure_format = self.get_figure_format(info)
-        self.output_file = self.make_output_path()
-        self.alignments_position = self.get_alignments_position(info)
-        self.identity_color = self.get_identity_color(info)
-        self.annotate_sequences = self.get_annotate_sequences_info(info)[0]
-        self.sequence_name = self.get_annotate_sequences_info(info)[1]
+        self.info = self.user_input()
+        self.input_files = self.get_input_files(self.info)
+        self.output_folder = self.get_output_folder(self.info)
+        self.figure_name = self.get_figure_name(self.info)
+        self.figure_format = self.get_figure_format(self.info)
+        self.output_file = self.make_output_path(self.info)
+        self.alignments_position = self.get_alignments_position(self.info)
+        self.identity_color = self.get_identity_color(self.info)
+        self.annotate_sequences = (
+            self.get_annotate_sequences_info(self.info)[0])
+        self.sequence_name = self.get_annotate_sequences_info(self.info)[1]
 
     def user_input(self):
         """
@@ -808,7 +842,8 @@ class UserInput:
         optional.add_argument(
             '--annotate_sequences', nargs='?', const='accession',
             help=(
-                'Annotate sequences in the plot. If argument is not provided,\n' +
+                'Annotate sequences in the plot. If argument is not ' +
+                'provided,\n' +
                 'sequences will be annotated using `accession` numbers.\n' +
                 'Options: `accession`, `name`, and `fname`.\n' +
                 '`accession` and `name` are obtained from the `ACCESSION`\n' +
@@ -841,9 +876,9 @@ class UserInput:
             output_folder = Path('.')
         # Check output folder
         if not output_folder.exists():
-            sys.exit(f'error: {self.output_folder} does not exist')
+            sys.exit(f'error: {output_folder} folder does not exist')
         if not output_folder.is_dir():
-            sys.exit(f'error: {self.output_folder} is not a directory')
+            sys.exit(f'error: {output_folder} is not a directory')
         return output_folder
 
     def get_figure_name(self, user_info) -> str:
@@ -851,7 +886,7 @@ class UserInput:
         if user_info.name is not None:
             figure_name = user_info.name
         else:
-            figure_name = 'figure_1.svg'
+            figure_name = 'figure_1.pdf'
         return figure_name
 
     def get_figure_format(self, user_info) -> str:
@@ -859,25 +894,29 @@ class UserInput:
         if user_info.format is not None:
             figure_format = user_info.format
         else:
-            figure_format = 'svg'
+            figure_format = 'pdf'
         return figure_format
 
-    def make_output_path(self) -> Path:
+    def make_output_path(self, user_info) -> Path:
         """Make output path."""
-        if self.check_figure_extention() == 0:
+        if self.check_figure_extention(user_info) == 0:
             output_file = self.output_folder / self.figure_name
         else:
             name = self.figure_name + '.' + self.figure_format
             output_file = self.output_folder / name
         return output_file
 
-    def check_figure_extention(self) -> int:
+    def check_figure_extention(self, user_info) -> int:
         """Check if figure extention matches figure format."""
+        # If figure format provided check if name was also provided
+        if user_info.name is None and user_info.format is not None:
+            sys.exit('error: figure format provided but name not provided')
+        # Check if figure name and format match.
         extention = self.figure_name.split('.')
         if len(extention) == 1:
             return 1
         if extention[1] != self.figure_format:
-            sys.exit(f'error: file name extention does no match figure format')
+            sys.exit('error: file name extention does no match figure format')
         return 0
 
     def get_alignments_position(self, user_info) -> str:
@@ -891,8 +930,9 @@ class UserInput:
             return position
         else:
             sys.exit(
-            f'Error: parameter `alignment_position: {position}` is not valid.\n' +
-            'Valid parameters are: `left`, `center`, or `right`.'
+                f'Error: parameter `alignment_position: {position}` is not ' +
+                'valid.\n' +
+                'Valid parameters are: `left`, `center`, or `right`.'
             )
 
     def get_identity_color(self, user_info) -> str:
@@ -918,11 +958,14 @@ class UserInput:
             return (True, name)
         else:
             sys.exit(
-                f'Error: parameter `annotate_sequence: {name}` is not valid.\n' +
+                f'Error: parameter `annotate_sequence: {name}` is not ' +
+                'valid.\n' +
                 'Valid parameter are: `accession` or `name`.'
             )
 
-def main():
+
+def app_cli():
+    """Run msplotter in the command line interface."""
     # Get user input.
     info = UserInput()
     # Get list of input files' paths.
@@ -951,6 +994,8 @@ def main():
         sequence_name=info.sequence_name
     )
     figure.make_figure()
+    figure.display_figure()
+
 
 if __name__ == '__main__':
-    main()
+    app_cli()
