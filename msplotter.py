@@ -66,10 +66,8 @@ Credits
 """
 
 
-import argparse
 import os
 import sys
-from pathlib import Path
 
 import matplotlib as mpl
 import matplotlib.colors as colors
@@ -82,8 +80,9 @@ from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
 
 from arrows import Arrow
+from user_input import user_input, UserInput
 
-__version__ = '0.1.10'
+__version__ = '0.1.11'
 
 
 class GenBankRecord:
@@ -148,7 +147,7 @@ class GenBankRecord:
             if feature.type != 'CDS':
                 continue
             product = feature.qualifiers.get('product', None)
-            if product is None:
+            if product is not None:
                 product = product[0]
             if feature.qualifiers.get('Color', None) is None:
                 color = '#ffff00'    # Make yellow default color
@@ -374,7 +373,7 @@ class MakeFigure:
         annotate_genes=False, annotate_sequences=False,
         sequence_name="accession", y_separation=10, sequence_color="black",
         sequence_width=3, identity_color="Greys", homology_padding=0.1,
-        figure_name=None, figure_format=None
+        figure_name=None, figure_format=None, use_gui=False
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
@@ -395,6 +394,7 @@ class MakeFigure:
         self.figure_name = figure_name
         self.figure_format = figure_format
         self.save_figure = self.check_save_figure()
+        self.use_gui = use_gui
 
     def get_lowest_homology(self) -> tuple:
         """Get the lowest and highest homologies in the alignment."""
@@ -745,231 +745,21 @@ class MakeFigure:
         # Adjust the padding between and around subplots.
         plt.tight_layout()
         # Save figure
-        if self.save_figure:
+        if self.save_figure and not self.use_gui:
             self.save_plot()
         # Show plot
         plt.show()
 
 
-class UserInput:
-    """Store information provided user via the command line.
+def app_cli(user_input):
+    """Run msplotter in the command line interface.
 
-    Attributes
+    Parameters
     ----------
-    input_files : list
-        List of input files' paths as Path objects.
-    output_folder : Path object
-        Path to output folder (default: current folder).
-    figure_name : str
-        Name of figure (default: `figure_1.svg`).
-    figure_format : str
-        Format to make and save figure (default: `svg`).
-    output_file : Path object
-        Path, including the name and format, of figure.
-    alignments_position : str
-        Position of the alignments in plot (default: `left`).
-    identity_color : str
-        Color of shadows representing homology regions (default: `Greys`).
+    user_input : UserInput class object.
     """
-    def __init__(self):
-        # Get user input.
-        self.info = self.user_input()
-        self.input_files = self.get_input_files(self.info)
-        self.output_folder = self.get_output_folder(self.info)
-        self.figure_name = self.get_figure_name(self.info)
-        self.figure_format = self.get_figure_format(self.info)
-        self.output_file = self.make_output_path(self.info)
-        self.alignments_position = self.get_alignments_position(self.info)
-        self.identity_color = self.get_identity_color(self.info)
-        self.annotate_sequences = (
-            self.get_annotate_sequences_info(self.info)[0])
-        self.sequence_name = self.get_annotate_sequences_info(self.info)[1]
-
-    def user_input(self):
-        """
-        Parse and check command line arguments provided by user.
-
-        Returns
-        -------
-        info : argparse object
-            .input : holds the path to input files
-            .output : holds sthe path of output figure
-        """
-        # Parse arguments and provide help.
-        parser = argparse.ArgumentParser(
-            add_help=False,
-            prog='msplotter.py',
-            formatter_class=argparse.RawTextHelpFormatter,
-            description=(
-                "Make a graphical representation of a blastn alignment."
-            )
-        )
-        # Make argument groups
-        required = parser.add_argument_group('Required arguments')
-        optional = parser.add_argument_group('Optional arguments')
-        # Required arguments
-        required.add_argument(
-            '-i', '--input', required=True, help='Path to input files.',
-            nargs='+'
-        )
-        # Optional aguments
-        # parser._optionals.title = 'Optional arguments'
-        optional.add_argument(
-            '-h', '--help', action='help',
-            help='Show this help message and exit.'
-        )
-        optional.add_argument('-o', '--output', help='Path to output folder.')
-        optional.add_argument('-n', '--name', help='Name of figure.')
-        optional.add_argument('-f', '--format', help='Format of figure.')
-        optional.add_argument(
-            '--alignments_position',
-            help=(
-                'Orientation of the alignments in the plot.\n' +
-                'Options: `left`, `center`, and `rigth`.\n' +
-                'Default: `left`.'
-            )
-        )
-        optional.add_argument(
-            '--identity_color',
-            help=(
-                'Color map representing homology regions.\n' +
-                'For a complete list of valid options visit:\n' +
-                'https://matplotlib.org/stable/tutorials/colors/colormaps.html\n' +
-                'Some options: `Greys`, `Purples`, `Blues`, and `Oranges`.\n' +
-                'Default: `Greys`.'
-            )
-        )
-        optional.add_argument(
-            '--annotate_sequences', nargs='?', const='accession',
-            help=(
-                'Annotate sequences in the plot. If argument is not ' +
-                'provided,\n' +
-                'sequences will be annotated using `accession` numbers.\n' +
-                'Options: `accession`, `name`, and `fname`.\n' +
-                '`accession` and `name` are obtained from the `ACCESSION`\n' +
-                'and `LOCUS` gb file tags, repectively.\n' +
-                '`fname` is the file name.'
-            )
-        )
-        # Parse command line arguments
-        info = parser.parse_args()
-
-        return info
-
-    def get_input_files(self, user_info) -> list:
-        """Get input files and return a list of Path objects."""
-        input_files = [Path(document) for document in user_info.input]
-        # Check if path to input files exists.
-        for document in input_files:
-            if not document.exists():
-                sys.exit(f'error: {document} does not exist')
-            if not document.is_file():
-                sys.exit(f'error: {document} is not a file')
-        return input_files
-
-    def get_output_folder(self, user_info) -> Path:
-        """Get output folder from user input and check if exists."""
-        # Get output folder from user
-        if user_info.output is not None:
-            output_folder = Path(user_info.output)
-        else:
-            output_folder = Path('.')
-        # Check output folder
-        if not output_folder.exists():
-            sys.exit(f'error: {output_folder} folder does not exist')
-        if not output_folder.is_dir():
-            sys.exit(f'error: {output_folder} is not a directory')
-        return output_folder
-
-    def get_figure_name(self, user_info) -> str:
-        """Get figure name from user."""
-        if user_info.name is not None:
-            figure_name = user_info.name
-        else:
-            figure_name = 'figure_1.pdf'
-        return figure_name
-
-    def get_figure_format(self, user_info) -> str:
-        """Get figure format from user."""
-        if user_info.format is not None:
-            figure_format = user_info.format
-        else:
-            figure_format = 'pdf'
-        return figure_format
-
-    def make_output_path(self, user_info) -> Path:
-        """Make output path."""
-        if self.check_figure_extention(user_info) == 0:
-            output_file = self.output_folder / self.figure_name
-        else:
-            name = self.figure_name + '.' + self.figure_format
-            output_file = self.output_folder / name
-        return output_file
-
-    def check_figure_extention(self, user_info) -> int:
-        """Check if figure extention matches figure format."""
-        # If figure format provided check if name was also provided
-        if user_info.name is None and user_info.format is not None:
-            sys.exit('error: figure format provided but name not provided')
-        # Check if figure name and format match.
-        extention = self.figure_name.split('.')
-        if len(extention) == 1:
-            return 1
-        if extention[1] != self.figure_format:
-            sys.exit('error: file name extention does no match figure format')
-        return 0
-
-    def get_alignments_position(self, user_info) -> str:
-        """Check if parameter alignment position is valid."""
-        if user_info.alignments_position is not None:
-            position = user_info.alignments_position
-        else:
-            position = 'left'
-        # Check that user enter correct parameter.
-        if position == "left" or position == "center" or position == "right":
-            return position
-        else:
-            sys.exit(
-                f'Error: parameter `alignment_position: {position}` is not ' +
-                'valid.\n' +
-                'Valid parameters are: `left`, `center`, or `right`.'
-            )
-
-    def get_identity_color(self, user_info) -> str:
-        """Get color that represent homolgoy regions from user.
-
-        Note
-        ----
-        The MakeFigure class with the function make_colormap will check color
-        input.
-        """
-        if user_info.identity_color is not None:
-            identity_color = user_info.identity_color
-        else:
-            identity_color = 'Greys'
-        return identity_color
-
-    def get_annotate_sequences_info(self, user_info) -> str:
-        """Get information to annotate sequences in plot."""
-        name = user_info.annotate_sequences
-        if name is None:
-            return (False, '')
-        if name == 'accession' or name == 'name' or name == 'fname':
-            return (True, name)
-        else:
-            sys.exit(
-                f'Error: parameter `annotate_sequence: {name}` is not ' +
-                'valid.\n' +
-                'Valid parameter are: `accession` or `name`.'
-            )
-
-
-def app_cli():
-    """Run msplotter in the command line interface."""
-    # Get user input.
-    info = UserInput()
     # Get list of input files' paths.
-    gb_files = info.input_files
+    gb_files = user_input.input_files
     # Create fasta files for BLASTing.
     faa_files = make_fasta_file(gb_files)
     # Run blastn locally.
@@ -986,16 +776,17 @@ def app_cli():
     figure = MakeFigure(
         alignments,
         gb_records,
-        alignments_position=info.alignments_position,
-        identity_color=info.identity_color,
-        figure_name=info.output_file,
-        figure_format=info.figure_format,
-        annotate_sequences=info.annotate_sequences,
-        sequence_name=info.sequence_name
+        alignments_position=user_input.alignments_position,
+        identity_color=user_input.identity_color,
+        figure_name=user_input.output_file,
+        figure_format=user_input.figure_format,
+        annotate_sequences=user_input.annotate_sequences,
+        sequence_name=user_input.sequence_name
     )
     figure.make_figure()
     figure.display_figure()
 
 
 if __name__ == '__main__':
-    app_cli()
+    info = user_input()
+    app_cli(UserInput(info))
