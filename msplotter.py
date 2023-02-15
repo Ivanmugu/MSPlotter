@@ -82,7 +82,7 @@ from Bio.SeqRecord import SeqRecord
 from arrows import Arrow
 from user_input import user_input, UserInput
 
-__version__ = '0.1.11'
+__version__ = '0.1.12'
 
 
 class GenBankRecord:

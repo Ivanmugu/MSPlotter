@@ -15,9 +15,23 @@ from tkinter import ttk
 from pathlib import Path
 import msplotter as msp
 
+class GuiInput:
+    """Store information provided by user in the GUI."""
+
+    def ___init__(self, output_path="./figure_1.pdf"):
+        self.output_path = Path(output_path)
+
+    def get_figure_name(self):
+        name = self.output_path.name
+        return name
+
+    def get_figure_format(self):
+        extention = self.output_path.split('.')
+        return extention[-1]
 
 class App:
     def __init__(self, root):
+        self.gui_input = GuiInput()
         self.main = self.main_window(root)
         self.display_window = self.make_display()
         self.gb_files = None
@@ -36,7 +50,9 @@ class App:
         return main
 
     def make_display(self):
-        display_window = tk.Text(self.main, width=40, height=20, state='disabled')
+        display_window = tk.Text(
+            self.main, width=40, height=20, state='disabled'
+        )
         display_window.grid(row=0, column=0, columnspan=3, sticky='EW')
         return display_window
 
@@ -129,8 +145,8 @@ class App:
             gb_records,
             # alignments_position=info.alignments_position,
             # identity_color=info.identity_color,
-            figure_name='test_gui.pdf',
-            figure_format='pdf',
+            # figure_name=self.gui_input.output_path,
+            # figure_format=self.gui_input.figure_format,
             # annotate_sequences=info.annotate_sequences,
             # sequence_name=info.sequence_name
             use_gui=True
@@ -139,6 +155,16 @@ class App:
         self.figure.display_figure()
 
     def save_figure(self):
+        f = filedialog.asksaveasfilename(
+            initialdir='.',
+            title='Save file as',
+            filetypes=(
+                ('Portable document format', '.pdf'),
+                ('Super format', '.svg')
+            )
+        )
+        self.figure.figure_name = f
+        self.figure.figure_format = f.split('.')[-1]
         self.figure.save_plot()
 
 def run_gui():
