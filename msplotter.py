@@ -82,7 +82,7 @@ from Bio.SeqRecord import SeqRecord
 from arrows import Arrow
 from user_input import user_input, UserInput
 
-__version__ = '0.1.12'
+__version__ = '0.1.13'
 
 
 class GenBankRecord:
@@ -372,8 +372,9 @@ class MakeFigure:
         self, alignments, gb_records, alignments_position="left",
         annotate_genes=False, annotate_sequences=False,
         sequence_name="accession", y_separation=10, sequence_color="black",
-        sequence_width=3, identity_color="Greys", homology_padding=0.1,
-        figure_name=None, figure_format=None, use_gui=False
+        sequence_width=3, identity_color="Greys", color_map_range=(0, 0.75),
+        homology_padding=0.1, figure_name=None, figure_format=None,
+        use_gui=False
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
@@ -386,8 +387,12 @@ class MakeFigure:
         self.sequence_color = sequence_color
         self.sequence_width = sequence_width
         self.identity_color = identity_color
+        self.color_map_range = color_map_range
         self.color_map = self.make_colormap(
-            identity_color=identity_color, min_val=0.0, max_val=0.75, n=100
+            identity_color=identity_color,
+            min_val=self.color_map_range[0],
+            max_val=self.color_map_range[1],
+            n=100
         )
         self.homology_padding = y_separation * homology_padding
         self.size_longest_sequence = self.get_longest_sequence()
@@ -674,7 +679,6 @@ class MakeFigure:
 
     def annotate_gene_sequences(self, ax, gb_record, y_distance):
         """Annotate genes of DNA sequence."""
-        # Annotate genes of first DNA sequence.
         for gene in gb_record.cds:
             location_annotation = (gene.start + gene.end) / 2
             ax.annotate(
@@ -697,6 +701,8 @@ class MakeFigure:
         return (width, height)
 
     def make_figure(self):
+        # Remove toolbar from plot
+        mpl.rcParams['toolbar'] = 'None'
         # Determine figure size by number of alignments.
         width, height = self.determine_figure_size(self.num_alignments)
         # Change figure size. Matplotlib default size is 6.4 x 4.8
@@ -720,12 +726,13 @@ class MakeFigure:
                 self.gb_records[0],
                 self.y_separation * len(self.gb_records)
             )
-            # Annotate genes last sequence
-            self.annotate_gene_sequences(
-                ax,
-                self.gb_records[len(self.gb_records) - 1],
-                self.y_separation
-            )
+            # TODO annotate gens of last sequence below the sequence
+            # # Annotate genes last sequence
+            # self.annotate_gene_sequences(
+            #     ax,
+            #     self.gb_records[len(self.gb_records) - 1],
+            #     self.y_separation
+            # )
 
     def check_save_figure(self) -> bool:
         """Check if save figure is True."""
