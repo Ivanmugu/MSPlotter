@@ -24,17 +24,25 @@ class ColormapPicker(customtkinter.CTkToplevel):
     ]
 
     def __init__(self, get_colormap_data=None):
+        """
+        Parameters
+        ----------
+        get_colormap_data : function
+            Function that links ColormapPicker and App to transfer the selected
+            colormap and colormap's range.
+        """
         super().__init__()
+        # Connect colormap_picker through the get_colormap_data function.
         self.get_colormap_data = get_colormap_data
         self.cmap = None
         self.cmap_range = None
+
+        # set grid layout 1x2
         self.geometry('590x150')
         self.resizable(False, False)
         self.title(
             'Pick a colormap and a range of colors for the homology regions'
         )
-
-        # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
 

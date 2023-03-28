@@ -82,7 +82,7 @@ from Bio.SeqRecord import SeqRecord
 from arrows import Arrow
 from user_input import user_input, UserInput
 
-__version__ = '0.1.13'
+__version__ = '0.1.14'
 
 
 class GenBankRecord:
@@ -160,7 +160,7 @@ class GenBankRecord:
             else:
                 start = feature.location._start + 1
                 end = feature.location._end
-            # Append cds
+            # Append cds.
             coding_sequences.append(CodingSequence(
                 product, start, end, strand, color
             ))
@@ -421,7 +421,7 @@ class MakeFigure:
                 longest = record.length
         return longest
 
-    def adjust_positions_sequences_right(self):
+    def adjust_positions_sequences_right(self) -> None:
         """Adjust position of sequences to the right including CDSs."""
         for record in self.gb_records:
             delta = self.size_longest_sequence - record.length
@@ -431,7 +431,7 @@ class MakeFigure:
                 sequence.start = sequence.start + delta
                 sequence.end = sequence.end + delta
 
-    def adjust_positions_alignments_right(self):
+    def adjust_positions_alignments_right(self) -> None:
         """Adjust position of alignments to the right."""
         for alignment in self.alignments:
             delta_query = self.size_longest_sequence - alignment.query_len
@@ -442,7 +442,7 @@ class MakeFigure:
                 region.hit_from = region.hit_from + delta_hit
                 region.hit_to = region.hit_to + delta_hit
 
-    def adjust_positions_sequences_center(self):
+    def adjust_positions_sequences_center(self) -> None:
         """Adjust position of sequences to the center including CDSs."""
         for record in self.gb_records:
             shift = (self.size_longest_sequence - record.length) / 2
@@ -452,7 +452,7 @@ class MakeFigure:
                 sequence.start = sequence.start + shift
                 sequence.end = sequence.end + shift
 
-    def adjust_positions_alignments_center(self):
+    def adjust_positions_alignments_center(self) -> None:
         """Adjust position of alignmets to the center."""
         for alignment in self.alignments:
             shift_q = (self.size_longest_sequence - alignment.query_len) / 2
@@ -463,7 +463,7 @@ class MakeFigure:
                 region.hit_from = region.hit_from + shift_h
                 region.hit_to = region.hit_to + shift_h
 
-    def plot_dna_sequences(self, ax):
+    def plot_dna_sequences(self, ax) -> None:
         """Plot lines that represent DNA sequences.
 
         Parameters
@@ -631,7 +631,7 @@ class MakeFigure:
         """
         # Separation of genes of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
-        # ratio head_height vs lenght of longest sequence
+        # Ratio head_height vs lenght of longest sequence.
         ratio = 0.02
         head_height = self.size_longest_sequence * ratio
         # Iterate over GenBankRecords and plot genes.
@@ -692,20 +692,21 @@ class MakeFigure:
 
     def determine_figure_size(self, num_alignments) -> tuple:
         """Determine figure size."""
-        # The Matplotlib default figure size is 6.4 x 4.8
+        # The Matplotlib default figure size is 6.4 x 4.8.
         width = 6.4
         height = 4.8
-        # Increase height after four alignments
+        # Increase height after four alignments.
         if num_alignments > 4:
             height = height * (num_alignments / 4)
         return (width, height)
 
     def make_figure(self):
-        # Remove toolbar from plot
+        """Make figure with matplotlib."""
+        # Remove toolbar from plot.
         mpl.rcParams['toolbar'] = 'None'
         # Determine figure size by number of alignments.
         width, height = self.determine_figure_size(self.num_alignments)
-        # Change figure size. Matplotlib default size is 6.4 x 4.8
+        # Change figure size. Matplotlib default size is 6.4 x 4.8.
         fig, ax = plt.subplots(figsize=(width, height))
         # Plot DNA sequences.
         self.plot_dna_sequences(ax)
@@ -714,13 +715,13 @@ class MakeFigure:
             self.annotate_dna_sequences(ax)
         # Plot homology regions.
         self.plot_homology_regions(ax)
-        # Plot colorbar
+        # Plot colorbar.
         self.plot_colorbar(fig, ax)
-        # Plot genes using the Arrow class
+        # Plot genes using the Arrow class.
         self.plot_arrows(ax)
-        # Annotate genes
+        # Annotate genes.
         if self.annotate_genes:
-            # Annotate genes first sequence
+            # Annotate genes first sequence.
             self.annotate_gene_sequences(
                 ax,
                 self.gb_records[0],
@@ -733,6 +734,7 @@ class MakeFigure:
             #     self.gb_records[len(self.gb_records) - 1],
             #     self.y_separation
             # )
+        return fig
 
     def check_save_figure(self) -> bool:
         """Check if save figure is True."""
@@ -741,24 +743,27 @@ class MakeFigure:
         else:
             return True
 
-    def save_plot(self):
+    def save_plot(self) -> None:
         """Save plot."""
         plt.savefig(fname=self.figure_name, format=self.figure_format)
 
-    def display_figure(self):
+    def display_figure(self) -> None:
         """Display and save figure."""
-        # Remove the x-y axis
+        # Remove the x-y axis.
         plt.axis('off')
         # Adjust the padding between and around subplots.
         plt.tight_layout()
-        # Save figure
+        # Save figure.
         if self.save_figure and not self.use_gui:
             self.save_plot()
-        # Show plot
+        # Show plot.
         plt.show()
 
+    def close_figure(self) -> None:
+        """Close maltplotlib."""
+        plt.close()
 
-def app_cli(user_input):
+def app_cli(user_input) -> None:
     """Run msplotter in the command line interface.
 
     Parameters

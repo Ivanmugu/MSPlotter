@@ -11,37 +11,40 @@
 
 from tkinter import filedialog
 import customtkinter
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from pathlib import Path
 
 import msplotter as msp
 from colormap_picker import ColormapPicker
+from plot import Plot
 
 class App(customtkinter.CTk):
     """msplotter GUI."""
     def __init__(self):
         super().__init__()
-        # Varibales for BLASTing and plotting
+        # Variables for BLASTing and plotting.
+        self.fig = None                        # matplotlib object.
         self.gb_files: list = None
-        self.figure = None
+        self.figure = None                     # msplotter object.
         self.identity_color: str = "Greys"
         self.colormap_range: tuple = (0, 0.75)
         self.annotate_sequences: bool = False
         self.annotate_genes: bool = False
-
         # Set layout parameters
-        self.geometry('700x410')
+        self.geometry('650x410')
         self.title('MSPlotter')
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(2, weight=1)
-
+        # Protocol to close app, including plot if exist.
+        self.protocol('WM_DELETE_WINDOW', self.on_closing)
         # Variable to store the ColormapPicker class used in the
-        # launch_colormap_picker function
+        # launch_colormap_picker function.
         self.colormap_app = None
 
         # ################ #
         # Navigation frame #
         # ################ #
-        # Create navigation frame
+        # Create navigation frame.
         self.navigation_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.navigation_frame.grid(row=0, column=0, sticky='nsew')
         self.navigation_frame.grid_rowconfigure(5, weight=1)
@@ -70,14 +73,7 @@ class App(customtkinter.CTk):
             command=self.plot_figure,
             state='disabled'
         )
-        self.plot_button.grid(row=3, column=0, padx=20, pady=20)
-        # Save button
-        self.save_button = customtkinter.CTkButton(
-            self.navigation_frame, text='Save',
-            command=self.save_figure,
-            state='disabled'
-        )
-        self.save_button.grid(row=7, column=0, padx=20, pady=(0,38))
+        self.plot_button.grid(row=6, column=0, padx=20, pady=(0, 38))
 
         # ################ #
         # Appearance frame #
@@ -231,7 +227,7 @@ class App(customtkinter.CTk):
             self.colormap_app.focus()
 
     def get_colormap_data(self, cmap_name, cmap_range):
-        """Get colormap data from colormap_picker"""
+        """Get colormap data from colormap_picker."""
         self.identity_color = cmap_name
         self.colormap_range = (
             round(cmap_range[0])/100, round(cmap_range[1])/100
@@ -262,7 +258,6 @@ class App(customtkinter.CTk):
 
     def plot_figure(self):
         """Plot alignments using msplotter."""
-        self.save_button.configure(state='normal')
         # Create fasta files for BLASTing.
         faa_files = msp.make_fasta_file(self.gb_files)
         # Run blastn locally.
@@ -289,35 +284,15 @@ class App(customtkinter.CTk):
             # sequence_name=info.sequence_name
             use_gui=True
         )
-        self.figure.make_figure()
-        self.figure.display_figure()
+        self.fig = self.figure.make_figure()
+        # Plot figure
+        Plot(self.fig, self.figure)
 
-    def save_figure(self):
-        """Save plot."""
-        f = filedialog.asksaveasfilename(
-            initialdir='.',
-            title='Save file as',
-            filetypes=(
-                ('Encapsulated Postcript', '.eps'),
-                ('Joint Photographic Experts Group', '.jpg'),
-                ('Joint Photographic Experts Group', '.jpeg'),
-                ('Portable Document Format', '.pdf'),
-                ('PGF code for LaTeX', '.pgf'),
-                ('Portable Network Graphics', '.png'),
-                ('Postscript', '.ps'),
-                ('Raw RGBA bitmap', '.raw'),
-                ('Raw RGBA bitmap', '.rgba'),
-                ('Scalable Vector Graphics', '.svg'),
-                ('Scalable Vector Graphics', '.svgz'),
-                ('Tagged Image File Format', '.tif'),
-                ('Tagged Image File Format', '.tiff'),
-                ('WevP Image Format', '.webp')
-            )
-        )
-        self.figure.figure_name = f
-        self.figure.figure_format = f.split('.')[-1]
-        self.figure.save_plot()
-
+    def on_closing(self):
+        if self.fig is not None:
+            self.figure.close_figure()
+        self.quit()
+        self.destroy()
 
 if __name__ == '__main__':
     app = App()
