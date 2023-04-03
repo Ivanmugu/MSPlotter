@@ -14,8 +14,6 @@ class Plot(customtkinter.CTkToplevel):
         # Set plot canvas and variables
         self.fig = matplotlib_figure      # matplotlib object.
         self.figure = msplotter_figure    # msplotter object.
-        plt.axis('off')                   # Remove the x-y axis.
-        plt.tight_layout()                # Adjust the padding subplots.
         # Set canvas for plot
         self.title("Graphic represenation of alignments")
         self.canvas = FigureCanvasTkAgg(self.fig, self)

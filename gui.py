@@ -31,10 +31,10 @@ class App(customtkinter.CTk):
         self.annotate_sequences: bool = False
         self.annotate_genes: bool = False
         # Set layout parameters
-        self.geometry('650x410')
+        self.geometry('600x520')
         self.title('MSPlotter')
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(2, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(1, weight=1)
         # Protocol to close app, including plot if exist.
         self.protocol('WM_DELETE_WINDOW', self.on_closing)
         # Variable to store the ColormapPicker class used in the
@@ -46,34 +46,34 @@ class App(customtkinter.CTk):
         # ################ #
         # Create navigation frame.
         self.navigation_frame = customtkinter.CTkFrame(self, corner_radius=0)
-        self.navigation_frame.grid(row=0, column=0, sticky='nsew')
-        self.navigation_frame.grid_rowconfigure(5, weight=1)
+        self.navigation_frame.grid(row=0, column=0, columnspan=3, sticky='nsew')
+        self.navigation_frame.grid_columnconfigure(0, weight=1)
         # Logo label
         self.logo_label = customtkinter.CTkLabel(
             self.navigation_frame, text='MSPloter',
             font=customtkinter.CTkFont(size=20, weight='bold')
         )
-        self.logo_label.grid(row=0, column=0, padx=20, pady=(30, 0))
+        self.logo_label.grid(row=0, column=0, padx=(10,5), pady=20)
         # Select button
         self.select_button = customtkinter.CTkButton(
             self.navigation_frame, text='Select',
             command=self.get_files_path
         )
-        self.select_button.grid(row=1, column=0, padx=20, pady=20)
+        self.select_button.grid(row=0, column=1, padx=5, pady=20)
         # Clear button
         self.clear_button = customtkinter.CTkButton(
             self.navigation_frame, text='Clear',
             command=self.clear_input,
             state='disabled'
         )
-        self.clear_button.grid(row=2, column=0, padx=20, pady=20)
+        self.clear_button.grid(row=0, column=2, padx=5, pady=20)
         # Plot button
         self.plot_button = customtkinter.CTkButton(
             self.navigation_frame, text='Plot',
             command=self.plot_figure,
             state='disabled'
         )
-        self.plot_button.grid(row=6, column=0, padx=20, pady=(0, 38))
+        self.plot_button.grid(row=0, column=3, padx=(5,10), pady=20)
 
         # ################ #
         # Appearance frame #
@@ -82,15 +82,27 @@ class App(customtkinter.CTk):
             self, corner_radius=5,
         )
         self.appearance_frame.grid(
-            row=0, column=1, padx=(20, 10), pady=20, sticky='nsew'
+            row=1, column=0, padx=(10, 5), pady=10, sticky='nsew'
         )
+        self.appearance_frame.grid_rowconfigure(9, weight=1)
         # Appearance label
+        self.system_appearance_mode = customtkinter.get_appearance_mode()
+        if self.system_appearance_mode == 'Dark':
+            self.appearance_fg_color = '#333333'
+        else:
+            self.appearance_fg_color = 'Gray80'
         self.appearance_label = customtkinter.CTkLabel(
             self.appearance_frame,
-            text='Appearance plot',
-            font=customtkinter.CTkFont(size=18),
+            text='Appearance',
+            font=customtkinter.CTkFont(size=16),
+            width=120,
+            height=50,
+            corner_radius=5,
+            fg_color=self.appearance_fg_color,
         )
-        self.appearance_label.grid(row=0, column=0, pady=10)
+        self.appearance_label.grid(
+            row=0, column=0, pady=(0,10), sticky='nswe'
+        )
         # Homology color label
         self.homology_label = customtkinter.CTkLabel(
             self.appearance_frame, text='Homology color:',
@@ -147,6 +159,11 @@ class App(customtkinter.CTk):
             command=lambda _:self.update_annotate_genes_var()
         )
         self.annotate_genes_menu.grid(row=8, column=0, pady=(0,10))
+        # Reset button
+        self.reset_button = customtkinter.CTkButton(
+            self.appearance_frame, text='Reset', command=self.reset_appearance
+        )
+        self.reset_button.grid(row=9, column=0, pady=(20, 10))
 
         # ############# #
         # Display frame #
@@ -156,21 +173,20 @@ class App(customtkinter.CTk):
             self, corner_radius=0,
             fg_color='transparent'
         )
-        self.display_frame.grid(row=0, column=2, sticky='nsew')
+        self.display_frame.grid(row=1, column=1, columnspan=2, sticky='nsew')
         self.display_frame.grid_rowconfigure(0, weight=1)
         self.display_frame.grid_columnconfigure(0, weight=1)
         self.display_window = customtkinter.CTkTextbox(
             self.display_frame, wrap='word'
         )
-        self.display_window.grid(row=0, column=0, padx=(10, 20), pady=20,
+        self.display_window.grid(row=0, column=0, padx=(5, 10), pady=10,
             sticky='nsew'
         )
         self.display_window.insert(
             'end',
-            'Welcome to MSPlotter!\n\n' +
-            'Select your GenBank sequences, plot, and save.\n'
-            "If you don't like the default paramenters, "
-            "change the appearance.\n"
+            '\n\n\n\nWelcome to MSPlotter!\n\n' +
+            'Select your GenBank sequences, plot, and save.\n\n'
+            "If you don't like the default parameters, change the appearance."
         )
         self.display_window.configure(state='disabled')
 
@@ -256,6 +272,21 @@ class App(customtkinter.CTk):
         else:
             self.annotate_genes = True
 
+    def reset_appearance(self):
+        """Reset appearance parameters."""
+        # Reset color map
+        self.identity_color = "Greys"
+        self.colormap_range = (0, 0.75)
+        # Reset align plot
+        self.align_plot_var.set('Left')
+        self.align_plot.configure(variable=self.align_plot_var)
+        # Reset annotate sequences
+        self.annotate_seq_var.set('No')
+        self.annotate_seq_menu.configure(variable=self.annotate_seq_var)
+        # Reset Annotate genes
+        self.annotate_genes_var.set('No')
+        self.annotate_genes_menu.configure(variable=self.annotate_genes_var)
+
     def plot_figure(self):
         """Plot alignments using msplotter."""
         # Create fasta files for BLASTing.
@@ -284,6 +315,10 @@ class App(customtkinter.CTk):
             # sequence_name=info.sequence_name
             use_gui=True
         )
+        # # Plot figure using msplotter
+        # self.figure.make_figure()
+        # self.figure.display_figure()
+        # Plot figure using the Plot class
         self.fig = self.figure.make_figure()
         # Plot figure
         Plot(self.fig, self.figure)

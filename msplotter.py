@@ -73,6 +73,9 @@ import matplotlib as mpl
 import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from matplotlib.patches import Rectangle
+
 import numpy as np
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
@@ -82,7 +85,7 @@ from Bio.SeqRecord import SeqRecord
 from arrows import Arrow
 from user_input import user_input, UserInput
 
-__version__ = '0.1.14'
+__version__ = '0.1.15'
 
 
 class GenBankRecord:
@@ -396,12 +399,18 @@ class MakeFigure:
         )
         self.homology_padding = y_separation * homology_padding
         self.size_longest_sequence = self.get_longest_sequence()
+        self.lowest_homology = int(
+            round(self.get_lowest_and_highest_homology()[0] * 100)
+        )
+        self.highest_homology = int(
+            round(self.get_lowest_and_highest_homology()[1] * 100)
+        )
         self.figure_name = figure_name
         self.figure_format = figure_format
         self.save_figure = self.check_save_figure()
         self.use_gui = use_gui
 
-    def get_lowest_homology(self) -> tuple:
+    def get_lowest_and_highest_homology(self) -> tuple:
         """Get the lowest and highest homologies in the alignment."""
         lowest = 100
         highest = 0
@@ -551,46 +560,48 @@ class MakeFigure:
                 )
             y_distance -= self.y_separation
 
-    def plot_colorbar(self, fig, ax):
+    def plot_colorbar(self, ax):
         """Plot color bar for homology regions.
 
         Parameters
         ----------
-        fig : figure, matplotlib object
         ax : axes, matplotlib object
-
-        TODO: Make custom colorbar figure legend with Line2D
         """
         norm = mpl.colors.Normalize(vmin=0, vmax=100)
-        # Make colorbar boundaries
-        lowest_homology, highest_homology = self.get_lowest_homology()
-        lowest_homology = int(round(lowest_homology * 100))
-        highest_homology = int(round(highest_homology * 100))
         print(
             "lowest and highest plot colorbar:",
-            lowest_homology, highest_homology
+            self.lowest_homology, self.highest_homology
         )
-        if lowest_homology != highest_homology:
-            boundaries = np.linspace(lowest_homology, highest_homology, 100)
-            fig.colorbar(
-                plt.cm.ScalarMappable(norm=norm, cmap=self.color_map),
-                ax=ax,
-                fraction=0.02,
-                shrink=0.4,
-                pad=0.1,
-                label='Identity (%)',
-                orientation='horizontal',
-                boundaries=boundaries,
-                ticks=[lowest_homology, highest_homology]
+        if self.lowest_homology != self.highest_homology:
+            # Place colorbar inside figure.
+            # axins = inset_axes(
+            #     ax,
+            #     width='20%',
+            #     height='50%',
+            #     loc='center'
+            # )
+            boundaries = np.linspace(
+                self.lowest_homology, self.highest_homology, 100
             )
+            colormap = plt.colorbar(
+                    plt.cm.ScalarMappable(norm=norm, cmap=self.color_map),
+                    ax=ax,                 # Axes to draw colormap
+                    shrink=0.25,
+                    aspect=10,
+                    label='Identity (%)',
+                    orientation='horizontal',
+                    boundaries=boundaries,
+                    ticks=[self.lowest_homology, self.highest_homology]
+            )
+            colormap.outline.set_visible(False) # Remove colormap frame
+            print("Making colormap...")
         else:
             homology_path = mpatches.Patch(
-                color=self.color_map(highest_homology/100),
-                label=f'{highest_homology}',
+                color=self.color_map(self.highest_homology/100),
+                label=f'{self.highest_homology}',
             )
             ax.legend(
-                # bbox_to_anchor = (0.5, -0.1),
-                # loc="lower center",
+                loc="center",
                 handles=[homology_path],
                 frameon=False,
                 title="Identity (%)"
@@ -707,23 +718,41 @@ class MakeFigure:
         # Determine figure size by number of alignments.
         width, height = self.determine_figure_size(self.num_alignments)
         # Change figure size. Matplotlib default size is 6.4 x 4.8.
-        fig, ax = plt.subplots(figsize=(width, height))
+        if self.lowest_homology == self.highest_homology:
+            fig, (ax_1, ax_2) = plt.subplots(
+                2, 1,
+                figsize=(width, height),
+                layout="constrained",
+                gridspec_kw={'height_ratios': [15, 1]}
+            )
+            # Remove axis
+            ax_1.set_axis_off()
+            ax_2.set_axis_off()
+        else:
+            fig, ax_1 = plt.subplots(
+                figsize=(width, height),
+                layout="constrained"
+            )
+            ax_1.set_axis_off()
         # Plot DNA sequences.
-        self.plot_dna_sequences(ax)
+        self.plot_dna_sequences(ax_1)
         # Annotate DNA sequences.
         if self.annotate_sequences:
-            self.annotate_dna_sequences(ax)
+            self.annotate_dna_sequences(ax_1)
         # Plot homology regions.
-        self.plot_homology_regions(ax)
+        self.plot_homology_regions(ax_1)
         # Plot colorbar.
-        self.plot_colorbar(fig, ax)
+        if self.lowest_homology == self.highest_homology:
+            self.plot_colorbar(ax_2)
+        else:
+            self.plot_colorbar(ax_1)
         # Plot genes using the Arrow class.
-        self.plot_arrows(ax)
+        self.plot_arrows(ax_1)
         # Annotate genes.
         if self.annotate_genes:
             # Annotate genes first sequence.
             self.annotate_gene_sequences(
-                ax,
+                ax_1,
                 self.gb_records[0],
                 self.y_separation * len(self.gb_records)
             )
@@ -749,10 +778,8 @@ class MakeFigure:
 
     def display_figure(self) -> None:
         """Display and save figure."""
-        # Remove the x-y axis.
-        plt.axis('off')
-        # Adjust the padding between and around subplots.
-        plt.tight_layout()
+        # # Adjust the padding between and around subplots.
+        # plt.tight_layout()
         # Save figure.
         if self.save_figure and not self.use_gui:
             self.save_plot()
