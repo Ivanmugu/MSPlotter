@@ -84,6 +84,15 @@ def user_input():
             '`fname` is the file name.'
         )
     )
+    optional.add_argument(
+        '--annotate_genes', nargs='?', const='top',
+        help=(
+            'Annotate genes from top and bottom sequences. If argument is ' +
+            'not provided,\n' +
+            'the genes at the top of the plot will be annotated.\n' +
+            'Options: `top`, `bottom`, and `both`.'
+        )
+    )
     # Parse command line arguments
     info = parser.parse_args()
 
@@ -124,10 +133,12 @@ class UserInput:
         self.output_file = self.make_output_path(user_input)
         self.alignments_position = self.get_alignments_position(user_input)
         self.identity_color = self.get_identity_color(user_input)
-        self.annotate_sequences = (
-            self.get_annotate_sequences_info(user_input)[0])
-        self.sequence_name = self.get_annotate_sequences_info(user_input)[1]
-
+        self.annotate_seq_info = self.get_annotate_sequences_info(user_input)
+        self.annotate_sequences = self.annotate_seq_info[0]
+        self.sequence_name = self.annotate_seq_info[1]
+        self.annotate_genes_info = self.get_annotate_genes_info(user_input)
+        self.annotate_genes = self.annotate_genes_info[0]
+        self.annotate_genes_on_sequence = self.annotate_genes_info[1]
 
     def get_input_files(self, user_info) -> list:
         """Get input files and return a list of Path objects."""
@@ -222,16 +233,35 @@ class UserInput:
             identity_color = 'Greys'
         return identity_color
 
-    def get_annotate_sequences_info(self, user_info) -> str:
+    def get_annotate_sequences_info(self, user_info) -> tuple:
         """Get information to annotate sequences in plot."""
-        name = user_info.annotate_sequences
-        if name is None:
+        #TODO it looks like fname is off
+        annotate = user_info.annotate_sequences
+        if annotate is None:
             return (False, '')
-        if name == 'accession' or name == 'name' or name == 'fname':
-            return (True, name)
+        if annotate == 'accession' or annotate == 'name' or annotate == 'fname':
+            return (True, annotate)
         else:
             sys.exit(
-                f'Error: parameter `annotate_sequence: {name}` is not ' +
+                f'Error: parameter `annotate_sequence: {annotate}` is not ' +
                 'valid.\n' +
                 'Valid parameter are: `accession` or `name`.'
+            )
+
+    def get_annotate_genes_info(self, user_info) -> tuple:
+        """Get information to annotate genes in plot."""
+        annotate = user_info.annotate_genes
+        if annotate is None:
+            return (False, ())
+        if annotate == 'top':
+            return (True, ('top',))
+        elif annotate == 'bottom':
+            return (True, ('bottom',))
+        elif annotate == 'both':
+            return (True, ('top', 'bottom'))
+        else:
+            sys.exit(
+                f'Erro: parameter `annotate_genes: {annotate}` is not ' +
+                'valid.\n' +
+                'Valid parameters are: `top`, `bottom` or `both`.'
             )

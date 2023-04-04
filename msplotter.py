@@ -74,7 +74,6 @@ import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from matplotlib.patches import Rectangle
 
 import numpy as np
 from Bio import SeqIO
@@ -85,7 +84,7 @@ from Bio.SeqRecord import SeqRecord
 from arrows import Arrow
 from user_input import user_input, UserInput
 
-__version__ = '0.1.15'
+__version__ = '0.1.16'
 
 
 class GenBankRecord:
@@ -373,17 +372,18 @@ class MakeFigure:
     """
     def __init__(
         self, alignments, gb_records, alignments_position="left",
-        annotate_genes=False, annotate_sequences=False,
-        sequence_name="accession", y_separation=10, sequence_color="black",
-        sequence_width=3, identity_color="Greys", color_map_range=(0, 0.75),
-        homology_padding=0.1, figure_name=None, figure_format=None,
-        use_gui=False
+        annotate_genes=False, annotate_genes_on_sequence=("top", "bottom"),
+        annotate_sequences=False, sequence_name="accession", y_separation=10,
+        sequence_color="black", sequence_width=3, identity_color="Greys",
+        color_map_range=(0, 0.75), homology_padding=0.1, figure_name=None,
+        figure_format=None, use_gui=False
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
         self.gb_records = gb_records
         self.alignments_position = alignments_position
         self.annotate_genes = annotate_genes
+        self.annotate_genes_on_sequence = annotate_genes_on_sequence
         self.annotate_sequences = annotate_sequences
         self.sequence_name = sequence_name
         self.y_separation = y_separation
@@ -496,7 +496,7 @@ class MakeFigure:
                 y_values,
                 linestyle='solid',
                 color='black',
-                linewidth=3,
+                linewidth=2,
                 zorder=1
             )
             y_distance -= self.y_separation
@@ -688,18 +688,54 @@ class MakeFigure:
             )
             y_distance -= self.y_separation
 
-    def annotate_gene_sequences(self, ax, gb_record, y_distance):
-        """Annotate genes of DNA sequence."""
-        for gene in gb_record.cds:
-            location_annotation = (gene.start + gene.end) / 2
-            ax.annotate(
-                gene.product,
-                xy=(location_annotation, y_distance),
-                xytext=(0, 15),
-                textcoords="offset points",
-                rotation=90,
-                ha="center"
-            )
+    def annotate_gene_sequences(self, ax):
+        """Annotate genes of DNA sequence.
+        
+        Parameters
+        ----------
+        ax : axes, matplotlib object
+        Note
+        ----
+        This function annotates genes only of top and bottom sequences.
+        """
+        # Define dictionaries with parameters to annotate top and bottom
+        # sequences. `y_text` indicates how far the annotation is going to be
+        # from the position of the gene. `h_alignment` and `v_alignment`
+        # indicate the position to rotate the text of the annotations.
+        # `gb_record` is a GenBankRecord class that has the coordinates of the
+        # genes to annotate. `y_distance` is the position of the sequence in
+        # the y-axis.
+        top = {
+            "y_text": 13,
+            "h_alignment": 'left',
+            "v_alignment": 'bottom',
+            "gb_record": self.gb_records[0],
+            "y_distance": self.y_separation * len(self.gb_records)
+        }
+        bottom = {
+            "y_text": -13,
+            "h_alignment": 'right',
+            "v_alignment": 'top',
+            "gb_record": self.gb_records[len(self.gb_records) - 1],
+            "y_distance": self.y_separation
+        }
+        for position in self.annotate_genes_on_sequence:
+            if position == 'top':
+                parameters = top
+            elif position == 'bottom':
+                parameters = bottom
+            for gene in parameters["gb_record"].cds:
+                location_annotation = (gene.start + gene.end) / 2
+                ax.annotate(
+                    gene.product,
+                    xy=(location_annotation, parameters["y_distance"]),
+                    xytext=(0, parameters["y_text"]),
+                    textcoords="offset points",
+                    rotation=90,
+                    ha="center",
+                    horizontalalignment=parameters["h_alignment"],
+                    verticalalignment=parameters["v_alignment"]
+                )
 
     def determine_figure_size(self, num_alignments) -> tuple:
         """Determine figure size."""
@@ -750,19 +786,7 @@ class MakeFigure:
         self.plot_arrows(ax_1)
         # Annotate genes.
         if self.annotate_genes:
-            # Annotate genes first sequence.
-            self.annotate_gene_sequences(
-                ax_1,
-                self.gb_records[0],
-                self.y_separation * len(self.gb_records)
-            )
-            # TODO annotate gens of last sequence below the sequence
-            # # Annotate genes last sequence
-            # self.annotate_gene_sequences(
-            #     ax,
-            #     self.gb_records[len(self.gb_records) - 1],
-            #     self.y_separation
-            # )
+            self.annotate_gene_sequences(ax_1)
         return fig
 
     def check_save_figure(self) -> bool:
@@ -819,6 +843,8 @@ def app_cli(user_input) -> None:
         identity_color=user_input.identity_color,
         figure_name=user_input.output_file,
         figure_format=user_input.figure_format,
+        annotate_genes=user_input.annotate_genes,
+        annotate_genes_on_sequence=user_input.annotate_genes_on_sequence,
         annotate_sequences=user_input.annotate_sequences,
         sequence_name=user_input.sequence_name
     )
