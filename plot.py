@@ -1,10 +1,18 @@
+"""Class to plot alignments.
+
+License
+-------
+This file is part of MSPloter
+BSD 3-Clause License
+Copyright (c) 2023, Ivan Munoz Gutierrez
+"""
 from tkinter import filedialog
 import customtkinter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 
 class Plot(customtkinter.CTkToplevel):
-    """Plot matplotlib alignment."""
+    """Plot alignment."""
     def __init__(self, matplotlib_figure, msplotter_figure):
         """
         matplotlib_figure : matplotlib Figure object class

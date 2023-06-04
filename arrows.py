@@ -1,25 +1,21 @@
-# =============================================================================
-# This file is part of MSPloter
-#
-# BSD 3-Clause License
-#
-# Copyright (c) 2022, Ivan Munoz Gutierrez
-#
-# A full description of the license is given in the LICENSE file at:
-# https://github.com/ivanmugu/MSPlotter
-# =============================================================================
-
 """Class for plotting arrows horizontally.
 
 It can be used to reprent genes.
 
-TODO: Make a graphical represention of the meaning of the x and y values for
-      plotting the arrows. Provide and extra document with the graphical
-      representation.
+License
+-------
+This file is part of MSPloter
+BSD 3-Clause License
+Copyright (c) 2023, Ivan Munoz Gutierrez
 """
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+
+# TODO: Make a graphical represention of the meaning of the x and y values for
+#       plotting the arrows. Provide and extra document with the graphical
+#       representation.
 
 
 class Arrow:
