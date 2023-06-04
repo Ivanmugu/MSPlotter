@@ -6,9 +6,10 @@ This file is part of MSPloter
 BSD 3-Clause License
 Copyright (c) 2023, Ivan Munoz Gutierrez
 """
+from typing import TypedDict, List, Callable
+
 import customtkinter
 
-from typing import TypedDict, List, Callable
 
 class Bar(TypedDict):
     Ids: List[int]

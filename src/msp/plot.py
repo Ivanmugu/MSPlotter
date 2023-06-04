@@ -11,6 +11,7 @@ import customtkinter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 
+
 class Plot(customtkinter.CTkToplevel):
     """Plot alignment."""
     def __init__(self, matplotlib_figure, msplotter_figure):

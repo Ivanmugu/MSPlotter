@@ -6,14 +6,16 @@ This file is part of MSPloter
 BSD 3-Clause License
 Copyright (c) 2023, Ivan Munoz Gutierrez
 """
+from pathlib import Path
+
 from tkinter import filedialog
 import customtkinter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from pathlib import Path
 
-import msplotter as msp
-from colormap_picker import ColormapPicker
-from plot import Plot
+import msp.msplotter as msp
+from msp.colormap_picker import ColormapPicker
+from msp.plot import Plot
+
 
 class App(customtkinter.CTk):
     """msplotter GUI."""

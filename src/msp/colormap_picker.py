@@ -7,11 +7,14 @@ BSD 3-Clause License
 Copyright (c) 2023, Ivan Munoz Gutierrez
 """
 
-import customtkinter
 import os
 from pathlib import Path
 from PIL import Image
-from slider_widget import Slider
+
+import customtkinter
+
+from msp.slider_widget import Slider
+
 
 class ColormapPicker(customtkinter.CTkToplevel):
 

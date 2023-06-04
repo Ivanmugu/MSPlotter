@@ -38,8 +38,6 @@ This file is part of MSPloter
 BSD 3-Clause License
 Copyright (c) 2023, Ivan Munoz Gutierrez
 """
-
-
 import os
 import sys
 
@@ -48,17 +46,13 @@ import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-
 import numpy as np
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
 
-from arrows import Arrow
-from user_input import user_input, UserInput
-
-__version__ = '0.1.18'
+from msp.arrows import Arrow
 
 
 class GenBankRecord:
@@ -824,8 +818,3 @@ def app_cli(user_input) -> None:
     )
     figure.make_figure()
     figure.display_figure()
-
-
-if __name__ == '__main__':
-    info = user_input()
-    app_cli(UserInput(info))
