@@ -1,4 +1,4 @@
-"""Parse user command line arguments.
+"""Parse command line arguments provided by user.
 
 License
 -------
@@ -7,50 +7,103 @@ BSD 3-Clause License
 Copyright (c) 2023, Ivan Munoz Gutierrez
 """
 import argparse
+from argparse import Namespace
 import sys
 from pathlib import Path
+import pkg_resources
+from typing import Union
+
+# TODO: test it with app_cli() function.
+# TODO: I need to check the activation of gui
+
+class UserInput:
+    """Store information provided by user via the command line."""
+    def __init__(
+            self,
+            input_files: Union[list[Path], None] = None,
+            output_folder: Union[None, Path] = None,
+            figure_name: Union[None, str] = None,
+            figure_format: Union[None, str] = None,
+            output_path: Union[None, Path] = None,
+            alignments_position: Union[None, str] = None,
+            identity_color: Union[None, str] = None,
+            annotate_sequences: Union[None, bool] = None,
+            annotate_sequences_with: Union[None, str] = None,
+            annotate_genes: Union[None, bool] = None,
+            annotate_genes_on_sequence: Union[None, tuple[str]] = None,
+            gui: Union[None, bool] = None,
+    ):
+        self.input_files = input_files
+        self.output_folder = output_folder
+        self.figure_name = figure_name
+        self.figure_format = figure_format
+        self.output_path = output_path
+        self.alignments_position = alignments_position
+        self.identity_color = identity_color
+        self.annotate_sequences = annotate_sequences
+        self.annotate_sequences_with = annotate_sequences_with
+        self.annotate_genes = annotate_genes
+        self.annotate_genes_on_sequence = annotate_genes_on_sequence
+        self.gui = gui
 
 
-def user_input():
-    """
-    Parse and check command line arguments provided by user.
-
-    Returns
-    -------
-    info : argparse object
-        .input : holds the path to input files
-        .output : holds sthe path of output figure
-    """
-    # Parse arguments and provide help.
+def parse_command_line_input() -> UserInput:
+    """Parse command line arguments provided by user."""
+    # Create parser.
     parser = argparse.ArgumentParser(
         add_help=False,
-        prog='msplotter.py',
+        prog='msplotter',
         formatter_class=argparse.RawTextHelpFormatter,
         description=(
             "Make a graphical representation of a blastn alignment."
         )
     )
     # Make argument groups.
-    # required = parser.add_argument_group('Required arguments')
-    optional = parser.add_argument_group('Optional arguments')
-    optional.add_argument(
-        '-g', '--gui', help='Run app as graphic user interface.',
-        action='store_true'
-    )
-    optional.add_argument(
-        '-i', '--input',
-        # required=True,
-        help='Path to input files.',
-        nargs='+'
-    )
-    # Optional aguments.
-    optional.add_argument(
+    helper = parser.add_argument_group('Help')
+    required = parser.add_argument_group('Required')
+    optional = parser.add_argument_group('Optional')
+    gui = parser.add_argument_group('Graphic User Interfase')
+    # ================== #
+    # Help arguments     #
+    # ================== #
+    helper.add_argument(
         '-h', '--help', action='help',
         help='Show this help message and exit.'
     )
-    optional.add_argument('-o', '--output', help='Path to output folder.')
-    optional.add_argument('-n', '--name', help='Name of figure.')
-    optional.add_argument('-f', '--format', help='Format of figure.')
+    prog_version = pkg_resources.get_distribution('msplotter').version
+    helper.add_argument(
+        '-v', '--version', action='version',
+        version=f'%(prog)s {prog_version}',
+        help="Show program's version number and exit"
+    )
+    # ================== #
+    # Required arguments #
+    # ================== #
+    required.add_argument(
+        '-i', '--input', nargs='+',
+        help=('Path to input files. Provided files must be GenBank files.'), 
+    )
+    # ================== #
+    # Optional arguments #
+    # ================== #
+    optional.add_argument(
+        '-o', '--output',
+        help=(
+            'Path to output folder. Default: current working directory.'
+        )
+    )
+    optional.add_argument(
+        '-n', '--name',
+        help=(
+            'Name of figure. Default: `figure`.'
+        )
+    )
+    optional.add_argument(
+        '-f', '--format',
+        help=(
+            'Format of figure. Default: `pdf`.'
+        )
+    )
     optional.add_argument(
         '--alignments_position',
         help=(
@@ -90,175 +143,225 @@ def user_input():
             'Options: `top`, `bottom`, and `both`.'
         )
     )
+    # ================== #
+    # GUI arguments      #
+    # ================== #
+    gui.add_argument(
+        '-g', '--gui', help='Run app in a graphic user interface.',
+        action='store_true'
+    )
+
     # Parse command line arguments
-    info = parser.parse_args()
+    command_line_info = parser.parse_args()
+    # Get command line arguments
+    user_input = get_command_line_arguments(command_line_info)
 
-    return info
+    return user_input
 
 
-class UserInput:
-    """Store information provided user via the command line.
-
-    Attributes
-    ----------
-    input_files : list
-        List of input files' paths as Path objects.
-    output_folder : Path object
-        Path to output folder (default: current folder).
-    figure_name : str
-        Name of figure (default: `figure_1.svg`).
-    figure_format : str
-        Format to make and save figure (default: `svg`).
-    output_file : Path object
-        Path, including the name and format, of figure.
-    alignments_position : str
-        Position of the alignments in plot (default: `left`).
-    identity_color : str
-        Color of shadows representing homology regions (default: `Greys`).
-    """
-    def __init__(self, user_input):
-        """
-        Parameters
-        ----------
-        user_input : argparse object
-            Harbors the command line information parsed by argparse.
-        """
-        self.input_files = self.get_input_files(user_input)
-        self.output_folder = self.get_output_folder(user_input)
-        self.figure_name = self.get_figure_name(user_input)
-        self.figure_format = self.get_figure_format(user_input)
-        self.output_file = self.make_output_path(user_input)
-        self.alignments_position = self.get_alignments_position(user_input)
-        self.identity_color = self.get_identity_color(user_input)
-        self.annotate_seq_info = self.get_annotate_sequences_info(user_input)
-        self.annotate_sequences = self.annotate_seq_info[0]
-        self.sequence_name = self.annotate_seq_info[1]
-        self.annotate_genes_info = self.get_annotate_genes_info(user_input)
-        self.annotate_genes = self.annotate_genes_info[0]
-        self.annotate_genes_on_sequence = self.annotate_genes_info[1]
-
-    def get_input_files(self, user_info) -> list:
-        """Get input files and return a list of Path objects."""
-        input_files = [Path(document) for document in user_info.input]
-        # Check if path to input files exists.
-        for document in input_files:
-            if not document.exists():
-                sys.exit(f'error: {document} does not exist')
-            if not document.is_file():
-                sys.exit(f'error: {document} is not a file')
-        return input_files
-
-    def get_output_folder(self, user_info) -> Path:
-        """Get output folder from user input and check if exists."""
-        # Get output folder from user
-        if user_info.output is not None:
-            output_folder = Path(user_info.output)
-        else:
-            output_folder = Path('.')
-        # Check output folder
-        if not output_folder.exists():
-            sys.exit(f'error: {output_folder} folder does not exist')
-        if not output_folder.is_dir():
-            sys.exit(f'error: {output_folder} is not a directory')
-        return output_folder
-
-    def get_figure_name(self, user_info) -> str:
-        """Get figure name from user."""
-        if user_info.name is not None:
-            figure_name = user_info.name
-        else:
-            figure_name = 'figure_1.pdf'
-        return figure_name
-
-    def get_figure_format(self, user_info) -> str:
-        """Get figure format from user."""
-        if user_info.format is not None:
-            figure_format = user_info.format
-        else:
-            figure_format = 'pdf'
-        return figure_format
-
-    def make_output_path(self, user_info) -> Path:
-        """Make output path."""
-        if self.check_figure_extention(user_info) == 0:
-            output_file = self.output_folder / self.figure_name
-        else:
-            name = self.figure_name + '.' + self.figure_format
-            output_file = self.output_folder / name
-        return output_file
-
-    def check_figure_extention(self, user_info) -> int:
-        """Check if figure extention matches figure format."""
-        # If figure format provided check if name was also provided
-        if user_info.name is None and user_info.format is not None:
-            sys.exit('error: figure format provided but name not provided')
-        # Check if figure name and format match.
-        extention = self.figure_name.split('.')
-        if len(extention) == 1:
-            return 1
-        if extention[1] != self.figure_format:
-            sys.exit('error: file name extention does no match figure format')
-        return 0
-
-    def get_alignments_position(self, user_info) -> str:
-        """Check if parameter alignment position is valid."""
-        if user_info.alignments_position is not None:
-            position = user_info.alignments_position
-        else:
-            position = 'left'
-        # Check that user enter correct parameter.
-        if position == "left" or position == "center" or position == "right":
-            return position
-        else:
-            sys.exit(
-                f'Error: parameter `alignment_position: {position}` is not ' +
-                'valid.\n' +
-                'Valid parameters are: `left`, `center`, or `right`.'
+def get_command_line_arguments(command_line_info: Namespace) -> UserInput:
+    """Store the command line input into a UserInput class."""
+    # Initiate UserInput class.
+    user_input = UserInput()
+    # =========================================================================
+    # If GUI, check if user didn't provide extra arguments.
+    # =========================================================================
+    if gui := command_line_info.gui:
+        user_input.gui = gui
+        check_if_user_provided_only_gui_argument(command_line_info)
+        return user_input
+    # =========================================================================
+    # If not gui, store and check all provided arguments.
+    # =========================================================================
+    # input_files is the only mandatory argument, unless user requests gui.
+    if input_files := command_line_info.input:
+        user_input.input_files = check_input_files(input_files)
+    else:
+        sys.exit('Error: the `--input` argument is mandatory.')
+    # If user doesn't provide output folder, use current working directory.
+    if output_folder := command_line_info.output:
+        user_input.output_folder = check_output_folder(output_folder)
+    else:
+        user_input.output_folder = Path.cwd()
+    # If user doesn't provide figure_name, use `figure` as name.
+    if figure_name := command_line_info.name:
+        user_input.figure_name = figure_name
+    else:
+        user_input.figure_name = 'figure'
+    # If user doesn't provide figure format, use `pdf`.
+    if figure_format := command_line_info.format:
+        user_input.figure_format = figure_format
+    else:
+        user_input.figure_format = 'pdf'
+    # If user provided figure_name and/or figure_format check correctness.
+    check_figure_name_and_format(user_input)
+    # Create output_path using output_folder, figure_name, and figure_format
+    user_input.output_path = make_output_path(user_input)
+    # If user didn't provide alignments position, use 'left'
+    if alignments_position := command_line_info.alignments_position:
+        user_input.alignments_position = check_alignments_position(
+                alignments_position
             )
-
-    def get_identity_color(self, user_info) -> str:
-        """Get color that represent homolgoy regions from user.
-
-        Note
-        ----
-        The MakeFigure class with the function make_colormap will check color
-        input.
-        """
-        if user_info.identity_color is not None:
-            identity_color = user_info.identity_color
-        else:
-            identity_color = 'Greys'
-        return identity_color
-
-    def get_annotate_sequences_info(self, user_info) -> tuple:
-        """Get information to annotate sequences in plot."""
-        #TODO it looks like fname is off
-        annotate = user_info.annotate_sequences
-        if annotate is None:
-            return (False, '')
-        if annotate == 'accession' or annotate == 'name' or annotate == 'fname':
-            return (True, annotate)
-        else:
-            sys.exit(
-                f'Error: parameter `annotate_sequence: {annotate}` is not ' +
-                'valid.\n' +
-                'Valid parameter are: `accession` or `name`.'
+    else:
+        user_input.alignments_position = 'left'
+    # The MakeFigure class with the function make_colormap of the msplotter
+    # module will check the correctness of identity_color.
+    if identity_color := command_line_info.identity_color:
+        user_input.identity_color = identity_color
+    else:
+        user_input.identity_color = 'Greys'
+    # If annotate_sequences has any value, then user_input.annotate_sequence is
+    # set to True, and user_input.annotate_sequences_with gets the value.
+    # Otherwise, set user_input.annotate_sequences to False.
+    if annotate_sequences := command_line_info.annotate_sequences:
+        user_input.annotate_sequences = True
+        user_input.annotate_sequences_with = check_annotate_sequences(
+                annotate_sequences
             )
-
-    def get_annotate_genes_info(self, user_info) -> tuple:
-        """Get information to annotate genes in plot."""
-        annotate = user_info.annotate_genes
-        if annotate is None:
-            return (False, ())
-        if annotate == 'top':
-            return (True, ('top',))
-        elif annotate == 'bottom':
-            return (True, ('bottom',))
-        elif annotate == 'both':
-            return (True, ('top', 'bottom'))
-        else:
-            sys.exit(
-                f'Erro: parameter `annotate_genes: {annotate}` is not ' +
-                'valid.\n' +
-                'Valid parameters are: `top`, `bottom` or `both`.'
+    else:
+        user_input.annotate_sequences = False
+    # If annotate_genes has any value, then user_input.annotate_genes is set to
+    # True and user_input.annotate_genes_on_sequence gets the value.
+    # Otherwise, set user_input.annotate_genes to False
+    # The get_annotate_genes_info function checks the arguments.
+    if annotate_genes := command_line_info.annotate_genes:
+        user_input.annotate_genes = True
+        user_input.annotate_genes_on_sequence = get_annotate_genes_info(
+                annotate_genes
             )
+    else:
+        user_input.annotate_genes = False
+
+    return user_input
+
+
+def check_if_user_provided_only_gui_argument(
+        command_line_info: Namespace
+    ) -> None:
+    """Make sure that user do not provide extra flags when activating GUI."""
+    arguments = vars(command_line_info)
+    counter = 0
+    for _, value in arguments.items():
+        if value:
+            counter += 1
+    # if there are more than one arguments, then exit with error.
+    if counter > 1:
+        sys.exit(
+            'Error: too many arguments provided.\n' +
+            'If you want to activate the GUI, only provide the `--gui` flag.'
+        )
+
+
+def check_mandatory_arguments(user_input: Namespace) -> None:
+    """Check mandatory arguments and conflicts with gui."""
+    if not user_input.input_files and not user_input.gui:
+        sys.exit('Error: the `--input` argument is mandatory.')
+    if (
+        (user_input.input_files and user_input.gui)
+    ):
+        sys.exit(
+            'Error: too many arguments.\nIf you want to activate the GUI ' +
+            'you only need to provide the `--gui` flag.\n' +
+            'Otherwise, no need to provide the `--gui` flag.'
+        )
+
+
+def check_input_files(input_files: list[str]) -> list[Path]:
+    """Check input files."""
+    # Convert list of input files into list of paths.
+    input_files = [Path(infile) for infile in input_files]
+    # Check if paths exist and if they are paths to files.
+    for document in input_files:
+        if not document.exists():
+            sys.exit(f'Error: `{document}` does not exist')
+        if not document.is_file():
+            sys.exit(f'Error: `{document}` is not a file')
+    return input_files
+
+
+def check_output_folder(output_folder: str) -> Path:
+    """Check output folder."""
+    # Convert output output folder into Path
+    output_folder = Path(output_folder)
+    # Check output folder.
+    if not output_folder.is_dir():
+        sys.exit(f'Error: `{output_folder}` is not a directory')
+    return output_folder
+
+
+def check_figure_name_and_format(user_input: Namespace) -> None:
+    """Check if figure extention matches figure format."""
+    # Check if figure name has extension.
+    extension = user_input.figure_name.split('.')
+    # If figure name does not have extension add it with format.
+    if len(extension) == 1:
+        user_input.figure_name = (
+            user_input.figure_name + '.' + user_input.figure_format
+        )
+    # If figure name has extension check if it matches figure format.
+    elif extension[-1] != user_input.figure_format:
+        sys.exit(
+            'Error: file name extension does no match figure format.\n' +
+            'The default format is `pdf`. If you want a different format ' +
+            'provide it using the `--format` flag.'
+        )
+
+
+def make_output_path(user_input: Namespace) -> Path:
+    """Make output path."""
+    if len(user_input.figure_name.split('.')) == 0:
+        figure_name = user_input.figure_name + '.' + user_input.figure_format
+        output_path = user_input.output_folder / figure_name
+    else:
+        output_path = user_input.output_folder / user_input.figure_name
+    return output_path
+
+
+def check_alignments_position(alignments_position: str) -> Union[None, str]:
+    """Check position to align the alignments."""
+    # Check that user enter correct parameter.
+    if (
+        alignments_position == "left"
+        or alignments_position == "center"
+        or alignments_position == "right"
+    ):
+        return alignments_position
+    else:
+        sys.exit(
+            f'Error: parameter `alignment_position: {alignments_position}` ' +
+            'is not valid.\n' +
+            'Valid parameters are: `left`, `center`, or `right`.'
+        )
+
+
+def check_annotate_sequences(annotate_sequences: str) -> Union[None, str]:
+    """Check correct input for annotate sequences."""
+    #TODO it looks like fname is off
+    if (
+        annotate_sequences == 'accession'
+        or annotate_sequences == 'name'
+        or annotate_sequences == 'fname'
+    ):
+        return annotate_sequences
+    else:
+        sys.exit(
+            f'Error: parameter `annotate_sequence: {annotate_sequences}` is ' +
+            'not valid.\n' +
+            'Valid parameter are: `accession`, `name`, or `fname`.'
+        )
+
+
+def get_annotate_genes_info(annotate_genes: str) -> Union[None, tuple[str]]:
+    """Get information to annotate genes in plot."""
+    if annotate_genes == 'top':
+        return ('top')
+    elif annotate_genes == 'bottom':
+        return ('bottom')
+    elif annotate_genes == 'both':
+        return ('top', 'bottom')
+    else:
+        sys.exit(
+            f'Error: parameter `annotate_genes: {annotate_genes}` is not ' +
+            'valid.\n' +
+            'Valid parameters are: `top`, `bottom` or `both`.'
+        )

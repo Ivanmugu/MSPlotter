@@ -809,12 +809,12 @@ def app_cli(user_input) -> None:
         gb_records,
         alignments_position=user_input.alignments_position,
         identity_color=user_input.identity_color,
-        figure_name=user_input.output_file,
+        figure_name=user_input.output_path,
         figure_format=user_input.figure_format,
         annotate_genes=user_input.annotate_genes,
         annotate_genes_on_sequence=user_input.annotate_genes_on_sequence,
         annotate_sequences=user_input.annotate_sequences,
-        sequence_name=user_input.sequence_name
+        sequence_name=user_input.annotate_sequences_with
     )
     figure.make_figure()
     figure.display_figure()

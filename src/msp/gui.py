@@ -328,6 +328,11 @@ class App(customtkinter.CTk):
         self.quit()
         self.destroy()
 
-if __name__ == '__main__':
+
+def app_gui():
     app = App()
     app.mainloop()
+
+
+if __name__ == '__main__':
+    app_gui()
