@@ -1,6 +1,6 @@
-<center>
-   <img src="./src/msp/images/logo.png" alt="MSPlotter" width="300" height="100">
-</center>
+<p align="center">
+   <img src="./src/msp/images/logo.png" alt="MSPlotter" width="350">
+</p>
 
 # Make a graphical representation of a blantn alignment
 
@@ -28,7 +28,7 @@ modify the parameters in the `MakeFigure` class of the `msplotter` module.
 Create a virtual environment and install msplotter using pip as follows:
 
 ```bash
-$ pip intall msplotter
+pip intall msplotter
 ```
 
 ## Usage and options
@@ -36,7 +36,7 @@ $ pip intall msplotter
 To view all the options run:
 
 ```bash
-$ msplotter --help
+msplotter --help
 ```
 
 Output:
@@ -98,19 +98,19 @@ Graphic User Interfase:
 To make a figure with default parameters:
 
 ```bash
-$ msplotter -i path/file_1.gb path/file_2.gb path/file_3.gb
+msplotter -i path/file_1.gb path/file_2.gb path/file_3.gb
 ```
 
 To save a figure in pdf format:
 
 ```bash
-$ msplotter -i path/file_1.gb path/file_2.gb path/file_3.gb -f pdf
+msplotter -i path/file_1.gb path/file_2.gb path/file_3.gb -f pdf
 ```
 
 If you don't like the terminal and prefer a graphical user interface:
 
 ```bash
-$ msplotter --gui
+msplotter --gui
 ```
 
 ## Notes
