@@ -89,19 +89,19 @@ def parse_command_line_input() -> UserInput:
     optional.add_argument(
         '-o', '--output',
         help=(
-            'Path to output folder. Default: current working directory.'
+            'Path to output folder.\nDefault: current working directory.'
         )
     )
     optional.add_argument(
         '-n', '--name',
         help=(
-            'Name of figure. Default: `figure`.'
+            'Name of figure.\nDefault: `figure`.'
         )
     )
     optional.add_argument(
         '-f', '--format',
         help=(
-            'Format of figure. Default: `pdf`.'
+            'Format of figure.\nDefault: `pdf`.'
         )
     )
     optional.add_argument(
@@ -125,22 +125,22 @@ def parse_command_line_input() -> UserInput:
     optional.add_argument(
         '--annotate_sequences', nargs='?', const='accession',
         help=(
-            'Annotate sequences in the plot. If argument is not ' +
-            'provided,\n' +
-            'sequences will be annotated using `accession` numbers.\n' +
+            'Annotate sequences in the plot.\n' +
             'Options: `accession`, `name`, and `fname`.\n' +
             '`accession` and `name` are obtained from the `ACCESSION`\n' +
-            'and `LOCUS` gb file tags, repectively.\n' +
-            '`fname` is the file name.'
+            'and `LOCUS` gb file tags, repectively. `fname` is the file\n' +
+            'name.\n' +
+            'If the flag is provided without argument, the sequences will\n' +
+            'be annotated using `accession` numbers.'
         )
     )
     optional.add_argument(
         '--annotate_genes', nargs='?', const='top',
         help=(
-            'Annotate genes from top and bottom sequences. If argument is ' +
-            'not provided,\n' +
-            'the genes at the top of the plot will be annotated.\n' +
-            'Options: `top`, `bottom`, and `both`.'
+            'Annotate genes from top and bottom sequences.\n' +
+            'Options: `top`, `bottom`, and `both`.\n' +
+            'If the flag is provided without argument, only the genes at\n' +
+            'the top of the plot will be annotated.'
         )
     )
     # ================== #

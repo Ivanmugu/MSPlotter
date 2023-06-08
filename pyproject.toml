@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "msplotter"
-version = "0.1.20"
+version = "0.1.21"
 authors = [
     {name = "Ivan Muñoz-Gutierrez", email = "ivan.munoz.gutierrez@gmail.com"},
 ]
@@ -33,4 +33,4 @@ dependencies = [
 "Homepage" = "https://github.com/ivanmugu/MSPlotter"
 
 [project.scripts]
-msp = "msp.__main__:main"
+msplotter = "msp.__main__:main"
