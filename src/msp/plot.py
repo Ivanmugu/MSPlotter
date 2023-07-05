@@ -44,20 +44,9 @@ class Plot(customtkinter.CTkToplevel):
             initialdir='.',
             title='Save file as',
             filetypes=(
-                ('Encapsulated Postcript', '.eps'),
-                ('Joint Photographic Experts Group', '.jpg'),
-                ('Joint Photographic Experts Group', '.jpeg'),
                 ('Portable Document Format', '.pdf'),
-                ('PGF code for LaTeX', '.pgf'),
                 ('Portable Network Graphics', '.png'),
-                ('Postscript', '.ps'),
-                ('Raw RGBA bitmap', '.raw'),
-                ('Raw RGBA bitmap', '.rgba'),
                 ('Scalable Vector Graphics', '.svg'),
-                ('Scalable Vector Graphics', '.svgz'),
-                ('Tagged Image File Format', '.tif'),
-                ('Tagged Image File Format', '.tiff'),
-                ('WevP Image Format', '.webp')
             )
         )
         self.figure.figure_name = f

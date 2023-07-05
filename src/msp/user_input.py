@@ -24,6 +24,7 @@ class UserInput:
             output_folder: Union[None, Path] = None,
             figure_name: Union[None, str] = None,
             figure_format: Union[None, str] = None,
+            dpi: Union[None, float] = None,
             output_path: Union[None, Path] = None,
             alignments_position: Union[None, str] = None,
             identity_color: Union[None, str] = None,
@@ -37,6 +38,7 @@ class UserInput:
         self.output_folder = output_folder
         self.figure_name = figure_name
         self.figure_format = figure_format
+        self.dpi = dpi
         self.output_path = output_path
         self.alignments_position = alignments_position
         self.identity_color = identity_color
@@ -101,7 +103,14 @@ def parse_command_line_input() -> UserInput:
     optional.add_argument(
         '-f', '--format',
         help=(
-            'Format of figure.\nDefault: `pdf`.'
+            'Format of figure.\nOptions: pdf, png, and svg.\nDefault: `pdf`.'
+        )
+    )
+    optional.add_argument(
+        '-d', '--dpi',
+        help=(
+            'Resolution in dots per inch.\n'
+            'Default: 300 (high resolution for print).'
         )
     )
     optional.add_argument(
@@ -195,6 +204,11 @@ def get_command_line_arguments(command_line_info: Namespace) -> UserInput:
         user_input.figure_format = 'pdf'
     # If user provided figure_name and/or figure_format check correctness.
     check_figure_name_and_format(user_input)
+    # If user doesn't provide dpi, make 300 as default.
+    if dpi := command_line_info.dpi:
+        user_input.dpi = float(dpi)
+    else:
+        user_input.dpi = 300.0
     # Create output_path using output_folder, figure_name, and figure_format
     user_input.output_path = make_output_path(user_input)
     # If user didn't provide alignments position, use 'left'

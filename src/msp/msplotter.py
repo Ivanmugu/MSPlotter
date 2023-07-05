@@ -11,27 +11,6 @@ the manual manipulation of the GenBank file, you can edit the file with
 MSPlotter uses the `matplotlib` library. Therefore, you can modify the
 parameters in the `MakeFigure` class to customize your figure.
 
-Usage examples
---------------
-To make a figure with default parameters
-$ python msplotter -i path/file_1.gb path/file_2.gb path/file_3.gb
-
-To save a figure in pdf format
-$ python msplotter -i path/file_1.gb path/file_2.gb path/file_3.gb -f pdf
-
-Notes
------
-1. MSPlotter was designed to plot three sequences with lengths between 8 to 23
-   kb. However, the matplotlib parameters can be adjusted for larger, smaller,
-   or more sequences.
-2. blastn must be installed locally and in the path.
-
-Credits
--------
-1. Inspired by easyfig
-        Sullivan et al (2011) Bioinformatics 27(7):1009-1010
-        https://mjsull.github.io/Easyfig/
-
 License
 -------
 This file is part of MSPloter
@@ -344,7 +323,7 @@ class MakeFigure:
         annotate_sequences=False, sequence_name="accession", y_separation=10,
         sequence_color="black", sequence_width=3, identity_color="Greys",
         color_map_range=(0, 0.75), homology_padding=0.1, figure_name=None,
-        figure_format=None, use_gui=False
+        figure_format=None, dpi=300.0, use_gui=False
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
@@ -375,6 +354,7 @@ class MakeFigure:
         )
         self.figure_name = figure_name
         self.figure_format = figure_format
+        self.dpi = dpi
         self.save_figure = self.check_save_figure()
         self.use_gui = use_gui
 
@@ -766,7 +746,9 @@ class MakeFigure:
 
     def save_plot(self) -> None:
         """Save plot."""
-        plt.savefig(fname=self.figure_name, format=self.figure_format)
+        plt.savefig(
+            fname=self.figure_name, format=self.figure_format, dpi=self.dpi
+        )
 
     def display_figure(self) -> None:
         """Display and save figure."""
@@ -811,6 +793,7 @@ def app_cli(user_input) -> None:
         identity_color=user_input.identity_color,
         figure_name=user_input.output_path,
         figure_format=user_input.figure_format,
+        dpi=user_input.dpi,
         annotate_genes=user_input.annotate_genes,
         annotate_genes_on_sequence=user_input.annotate_genes_on_sequence,
         annotate_sequences=user_input.annotate_sequences,

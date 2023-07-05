@@ -28,7 +28,7 @@ modify the parameters in the `MakeFigure` class of the `msplotter` module.
 Create a virtual environment and install msplotter using pip as follows:
 
 ```bash
-pip intall msplotter
+pip install msplotter
 ```
 
 ## Usage and options
