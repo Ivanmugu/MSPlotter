@@ -30,6 +30,7 @@ from Bio import SeqIO
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
+from pathlib import Path
 
 from msp.arrows import Arrow
 
@@ -287,10 +288,13 @@ class MakeFigure:
         List of `GenBankRecord` classes created from gb files.
     alignments_position : str
         Position of the alignments in the plot (default: `left`).
-    add_annotations_genes : Bool
+    annotate_genes : bool
         Annotate genes in plot (default: False).
-    add_annotations_sequences : Bool
-        Annotate sequences in plot (default: False).
+    annotate_genes_on_sequence : tuple with the str `top`, and/or `bottom`
+        Annotate genes at the top, bottom or both.
+    annotate_sequences : bool
+        Annotate sequences in plot (defalult: False). If True, the `top` and
+        `bottom` sequences are annotated.
     sequence_name : str
         String to access either `name` or `accession` from GenBankRecord class
         (default: `accession`). Either `name` or `accession` is used to
@@ -306,24 +310,35 @@ class MakeFigure:
         Color used to represent regions of homology (default: `Greys`). This
         color represent a `Matplotlib` colormap. Therefore, you should provide
         a valid colormap name.
+    color_map_range : tupple
+        Tyupple with a min and max value between 0 and 1. The min and max
+        values are used in color_map to determine the range of the color_map
+        to use (default: (0, 0.75)).
+    color_map : matplotlib colormaps object
+        Color map to represent homology regions.
     homology_padding : float
         Padding between lines representing sequences and regions of homology
         (default: 0.1). The number provided represents a fraction of the
         y_separation.
     save_figure : bool
-        Save plotted figure (deault: `True`).
-    figure_name : str
-        Name to save figure (default: `figure_1.pdf`).
+        Save plotted figure.
+    figure_name : Path
+        Output path with figure's name.
     figure_format : str
-        Format to save figure (default: `pdf`).
+        Format to save figure.
+    dpi : float
+        Resolution of figure in dots per inch (default: 300.0).
+    user_gui : bool
+        Run app in a graphical user interface (default: False).
     """
     def __init__(
         self, alignments, gb_records, alignments_position="left",
         annotate_genes=False, annotate_genes_on_sequence=("top", "bottom"),
         annotate_sequences=False, sequence_name="accession", y_separation=10,
         sequence_color="black", sequence_width=3, identity_color="Greys",
-        color_map_range=(0, 0.75), homology_padding=0.1, figure_name=None,
-        figure_format=None, dpi=300.0, use_gui=False
+        color_map_range=(0, 0.75), homology_padding=0.1,
+        figure_name=(Path.cwd() / 'figure.png'),
+        figure_format='png', dpi=300.0, use_gui=False
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
@@ -455,11 +470,11 @@ class MakeFigure:
             cmap = plt.colormaps[identity_color]
         except KeyError:
             sys.exit(
-                f"Error: the identity color '{identity_color}' provided is " +
-                "not valid.\nUse the help option to find valid colors or " +
-                "visit:\n" +
-                "https://matplotlib.org/stable/tutorials/colors/colormaps.html\n" +
-                "for a complete list of valid options."
+                f"Error: the identity color '{identity_color}' provided is "
+                "not valid.\nUse the help option to find valid colors or "
+                "visit:\n"
+                "https://matplotlib.org/stable/tutorials/colors/colormaps.html"
+                "\nfor a complete list of valid options."
             )
         if min_val == 0 and max_val == 1:
             return cmap

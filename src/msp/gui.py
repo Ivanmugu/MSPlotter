@@ -22,9 +22,9 @@ class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
         # Variables for BLASTing and plotting.
-        self.fig = None                        # matplotlib object.
+        self.figure_plt = None                        # matplotlib object.
         self.gb_files: list = None
-        self.figure = None                     # msplotter object.
+        self.figure_msp = None                     # msplotter object.
         self.identity_color: str = "Greys"
         self.colormap_range: tuple = (0, 0.75)
         self.annotate_sequences: bool = False
@@ -256,8 +256,6 @@ class App(customtkinter.CTk):
             f'{round(cmap_range[1])}`.'
         )
         self.display_window.configure(state='disabled')
-        # print(f'Selected cmap: {self.identity_color}')
-        # print(f'Selected cmap range: {self.colormap_range}')
 
     def update_annotate_seq_var(self):
         if self.annotate_seq_var.get() == 'No':
@@ -301,30 +299,24 @@ class App(customtkinter.CTk):
         # Make a list of `GenBankRecord` classes from the gb files.
         gb_records = msp.get_gb_records(self.gb_files)
         # Make figure.
-        self.figure = msp.MakeFigure(
+        self.figure_msp = msp.MakeFigure(
             alignments,
             gb_records,
             alignments_position=self.align_plot_var.get().lower(),
             identity_color=self.identity_color,
             color_map_range=self.colormap_range,
-            # figure_name=self.gui_input.output_path,
-            # figure_format=self.gui_input.figure_format,
             annotate_sequences=self.annotate_sequences,
             annotate_genes=self.annotate_genes,
-            # sequence_name=info.sequence_name
             use_gui=True
         )
-        # # Plot figure using msplotter
-        # self.figure.make_figure()
-        # self.figure.display_figure()
         # Plot figure using the Plot class
-        self.fig = self.figure.make_figure()
+        self.figure_plt = self.figure_msp.make_figure()
         # Plot figure
-        Plot(self.fig, self.figure)
+        Plot(self.figure_plt, self.figure_msp)
 
     def on_closing(self):
-        if self.fig is not None:
-            self.figure.close_figure()
+        if self.figure_plt is not None:
+            self.figure_msp.close_figure()
         self.quit()
         self.destroy()
 

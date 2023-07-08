@@ -64,7 +64,7 @@ def parse_command_line_input() -> UserInput:
     helper = parser.add_argument_group('Help')
     required = parser.add_argument_group('Required')
     optional = parser.add_argument_group('Optional')
-    gui = parser.add_argument_group('Graphic User Interfase')
+    gui = parser.add_argument_group('Graphical User Interfase')
     # ================== #
     # Help arguments     #
     # ================== #
@@ -103,7 +103,10 @@ def parse_command_line_input() -> UserInput:
     optional.add_argument(
         '-f', '--format',
         help=(
-            'Format of figure.\nOptions: pdf, png, and svg.\nDefault: `pdf`.'
+            'Format of figure. Options: pdf, png, and svg.\n'
+            'For a complete list of valid options visit:\n'
+            'https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.savefig.html\n'
+            'Default: `png`.'
         )
     )
     optional.add_argument(
@@ -116,39 +119,39 @@ def parse_command_line_input() -> UserInput:
     optional.add_argument(
         '--alignments_position',
         help=(
-            'Orientation of the alignments in the plot.\n' +
-            'Options: `left`, `center`, and `rigth`.\n' +
+            'Orientation of the alignments in the plot.\n'
+            'Options: `left`, `center`, and `rigth`.\n'
             'Default: `left`.'
         )
     )
     optional.add_argument(
         '--identity_color',
         help=(
-            'Color map representing homology regions.\n' +
-            'For a complete list of valid options visit:\n' +
-            'https://matplotlib.org/stable/tutorials/colors/colormaps.html\n' +
-            'Some options: `Greys`, `Purples`, `Blues`, and `Oranges`.\n' +
+            'Color map representing homology regions.\n'
+            'For a complete list of valid options visit:\n'
+            'https://matplotlib.org/stable/tutorials/colors/colormaps.html\n'
+            'Some options: `Greys`, `Purples`, `Blues`, and `Oranges`.\n'
             'Default: `Greys`.'
         )
     )
     optional.add_argument(
         '--annotate_sequences', nargs='?', const='accession',
         help=(
-            'Annotate sequences in the plot.\n' +
-            'Options: `accession`, `name`, and `fname`.\n' +
-            '`accession` and `name` are obtained from the `ACCESSION`\n' +
-            'and `LOCUS` gb file tags, repectively. `fname` is the file\n' +
-            'name.\n' +
-            'If the flag is provided without argument, the sequences will\n' +
+            'Annotate sequences in the plot.\n'
+            'Options: `accession`, `name`, and `fname`.\n'
+            '`accession` and `name` are obtained from the `ACCESSION`\n'
+            'and `LOCUS` gb file tags, repectively. `fname` is the file\n'
+            'name.\n'
+            'If the flag is provided without argument, the sequences will\n'
             'be annotated using `accession` numbers.'
         )
     )
     optional.add_argument(
         '--annotate_genes', nargs='?', const='top',
         help=(
-            'Annotate genes from top and bottom sequences.\n' +
-            'Options: `top`, `bottom`, and `both`.\n' +
-            'If the flag is provided without argument, only the genes at\n' +
+            'Annotate genes from top and bottom sequences.\n'
+            'Options: `top`, `bottom`, and `both`.\n'
+            'If the flag is provided without argument, only the genes at\n'
             'the top of the plot will be annotated.'
         )
     )
@@ -156,7 +159,7 @@ def parse_command_line_input() -> UserInput:
     # GUI arguments      #
     # ================== #
     gui.add_argument(
-        '-g', '--gui', help='Run app in a graphic user interface.',
+        '-g', '--gui', help='Run app in a graphical user interface.',
         action='store_true'
     )
 
@@ -197,11 +200,11 @@ def get_command_line_arguments(command_line_info: Namespace) -> UserInput:
         user_input.figure_name = figure_name
     else:
         user_input.figure_name = 'figure'
-    # If user doesn't provide figure format, use `pdf`.
+    # If user doesn't provide figure format, use `png`.
     if figure_format := command_line_info.format:
         user_input.figure_format = figure_format
     else:
-        user_input.figure_format = 'pdf'
+        user_input.figure_format = 'png'
     # If user provided figure_name and/or figure_format check correctness.
     check_figure_name_and_format(user_input)
     # If user doesn't provide dpi, make 300 as default.
@@ -274,8 +277,8 @@ def check_mandatory_arguments(user_input: Namespace) -> None:
         (user_input.input_files and user_input.gui)
     ):
         sys.exit(
-            'Error: too many arguments.\nIf you want to activate the GUI ' +
-            'you only need to provide the `--gui` flag.\n' +
+            'Error: too many arguments.\nIf you want to activate the GUI '
+            'you only need to provide the `--gui` flag.\n'
             'Otherwise, no need to provide the `--gui` flag.'
         )
 
@@ -315,8 +318,8 @@ def check_figure_name_and_format(user_input: Namespace) -> None:
     # If figure name has extension check if it matches figure format.
     elif extension[-1] != user_input.figure_format:
         sys.exit(
-            'Error: file name extension does no match figure format.\n' +
-            'The default format is `pdf`. If you want a different format ' +
+            'Error: file name extension does no match figure format.\n'
+            'The default format is `png`. If you want a different format '
             'provide it using the `--format` flag.'
         )
 
