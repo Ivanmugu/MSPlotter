@@ -25,6 +25,7 @@ import matplotlib.colors as colors
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import numpy as np
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
@@ -464,6 +465,25 @@ class MakeFigure:
             )
             y_distance -= self.y_separation
 
+    def plot_scale(self, ax):
+        """Draw a horizontal scale for DNA length."""
+        # Get x_ticks
+        x_ticks = ax.get_xticks()
+        len_ticks = x_ticks[1] - x_ticks[0]
+        # plot scale_bar
+        ax.plot((0,len_ticks), (self.y_separation/2,self.y_separation/2),
+                linestyle='solid', color='black', linewidth=2, zorder=1)
+        # Annotate scale_bar
+        location_annotation = len_ticks / 2
+        ax.annotate(
+            f'{round(len_ticks)}bp',
+            fontsize=8,
+            xy=(location_annotation, self.y_separation/2),
+            xytext=(0, 5),
+            textcoords='offset points',
+            ha='center',
+        )
+
     def make_colormap(self, identity_color, min_val=0.0, max_val=1.0, n=100):
         """Make color map for homology regions."""
         try:
@@ -536,39 +556,39 @@ class MakeFigure:
             self.lowest_homology, self.highest_homology
         )
         if self.lowest_homology != self.highest_homology:
-            # Place colorbar inside figure.
-            # axins = inset_axes(
-            #     ax,
-            #     width='20%',
-            #     height='50%',
-            #     loc='center'
-            # )
             boundaries = np.linspace(
                 self.lowest_homology, self.highest_homology, 100
             )
             colormap = plt.colorbar(
                     plt.cm.ScalarMappable(norm=norm, cmap=self.color_map),
                     ax=ax,                 # Axes to draw colormap
-                    shrink=0.25,
+                    shrink=0.18,
                     aspect=10,
-                    label='Identity (%)',
-                    orientation='horizontal',
+                    orientation='vertical',
                     boundaries=boundaries,
-                    ticks=[self.lowest_homology, self.highest_homology]
+                    ticks=[self.lowest_homology, self.highest_homology],
+            )
+            colormap.ax.tick_params(labelsize=8)
+            colormap.set_label(
+                label="Identity (%)",
+                size=8,
+                labelpad=-7,
             )
             colormap.outline.set_visible(False) # Remove colormap frame
-            print("Making colormap...")
         else:
             homology_path = mpatches.Patch(
                 color=self.color_map(self.highest_homology/100),
                 label=f'{self.highest_homology}',
             )
-            ax.legend(
-                loc="center",
+            legend = ax.legend(
+                loc="center left",
+                bbox_to_anchor=(1, 0.1),
                 handles=[homology_path],
                 frameon=False,
-                title="Identity (%)"
+                title="Identity\n   (%)",
+                fontsize=8
             )
+            legend.get_title().set_fontsize(8)
 
     def plot_genes(self, ax):
         """Plot genes.
@@ -641,7 +661,7 @@ class MakeFigure:
                 sequence_name = gb_record.file_name
             else:
                 sys.exit(
-                    f'Error: invalid sequence name `{sequence_name}` for ' +
+                    f'Error: invalid sequence name `{sequence_name}` for '
                     'annotating sequences.')
             ax.annotate(
                 sequence_name,
@@ -717,39 +737,27 @@ class MakeFigure:
         # Determine figure size by number of alignments.
         width, height = self.determine_figure_size(self.num_alignments)
         # Change figure size. Matplotlib default size is 6.4 x 4.8.
-        if self.lowest_homology == self.highest_homology:
-            fig, (ax_1, ax_2) = plt.subplots(
-                2, 1,
-                figsize=(width, height),
-                layout="constrained",
-                gridspec_kw={'height_ratios': [15, 1]}
-            )
-            # Remove axis
-            ax_1.set_axis_off()
-            ax_2.set_axis_off()
-        else:
-            fig, ax_1 = plt.subplots(
-                figsize=(width, height),
-                layout="constrained"
-            )
-            ax_1.set_axis_off()
+        fig, ax = plt.subplots(
+            figsize=(width, height),
+            layout="constrained"
+        )
+        ax.set_axis_off()
         # Plot DNA sequences.
-        self.plot_dna_sequences(ax_1)
+        self.plot_dna_sequences(ax)
         # Annotate DNA sequences.
         if self.annotate_sequences:
-            self.annotate_dna_sequences(ax_1)
+            self.annotate_dna_sequences(ax)
         # Plot homology regions.
-        self.plot_homology_regions(ax_1)
+        self.plot_homology_regions(ax)
         # Plot colorbar.
-        if self.lowest_homology == self.highest_homology:
-            self.plot_colorbar(ax_2)
-        else:
-            self.plot_colorbar(ax_1)
+        self.plot_colorbar(ax)
         # Plot genes using the Arrow class.
-        self.plot_arrows(ax_1)
+        self.plot_arrows(ax)
         # Annotate genes.
         if self.annotate_genes:
-            self.annotate_gene_sequences(ax_1)
+            self.annotate_gene_sequences(ax)
+        # Plot scale bar.
+        self.plot_scale(ax)
         return fig
 
     def check_save_figure(self) -> bool:

@@ -345,8 +345,8 @@ def check_alignments_position(alignments_position: str) -> Union[None, str]:
         return alignments_position
     else:
         sys.exit(
-            f'Error: parameter `alignment_position: {alignments_position}` ' +
-            'is not valid.\n' +
+            f'Error: parameter `alignment_position: {alignments_position}` '
+            'is not valid.\n'
             'Valid parameters are: `left`, `center`, or `right`.'
         )
 
@@ -362,8 +362,8 @@ def check_annotate_sequences(annotate_sequences: str) -> Union[None, str]:
         return annotate_sequences
     else:
         sys.exit(
-            f'Error: parameter `annotate_sequence: {annotate_sequences}` is ' +
-            'not valid.\n' +
+            f'Error: parameter `annotate_sequence: {annotate_sequences}` is '
+            'not valid.\n'
             'Valid parameter are: `accession`, `name`, or `fname`.'
         )
 
@@ -378,7 +378,7 @@ def get_annotate_genes_info(annotate_genes: str) -> Union[None, tuple[str]]:
         return ('top', 'bottom')
     else:
         sys.exit(
-            f'Error: parameter `annotate_genes: {annotate_genes}` is not ' +
-            'valid.\n' +
+            f'Error: parameter `annotate_genes: {annotate_genes}` is not '
+            'valid.\n'
             'Valid parameters are: `top`, `bottom` or `both`.'
         )
