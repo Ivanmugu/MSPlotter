@@ -21,11 +21,12 @@ import os
 import sys
 
 import matplotlib as mpl
+from matplotlib.axes import Axes
 import matplotlib.colors as colors
+from matplotlib.colors import Colormap
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import numpy as np
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
@@ -436,13 +437,8 @@ class MakeFigure:
                 region.hit_from = region.hit_from + shift_h
                 region.hit_to = region.hit_to + shift_h
 
-    def plot_dna_sequences(self, ax) -> None:
-        """Plot lines that represent DNA sequences.
-
-        Parameters
-        ----------
-        ax : axes, matplotlib object
-        """
+    def plot_dna_sequences(self, ax: Axes) -> None:
+        """Plot lines that represent DNA sequences."""
         y_distance = len(self.gb_records) * self.y_separation
         # Readjust position sequences to the right or center if requested.
         if self.alignments_position == "right":
@@ -465,26 +461,40 @@ class MakeFigure:
             )
             y_distance -= self.y_separation
 
-    def plot_scale(self, ax):
-        """Draw a horizontal scale for DNA length."""
-        # Get x_ticks
+    def draw_scale_bar(self, ax: Axes) -> None:
+        """Draw a horizontal scale bat for DNA length."""
+        # Get x_ticks.
         x_ticks = ax.get_xticks()
         len_ticks = x_ticks[1] - x_ticks[0]
-        # plot scale_bar
+        # Draw scale_bar.
         ax.plot((0,len_ticks), (self.y_separation/2,self.y_separation/2),
                 linestyle='solid', color='black', linewidth=2, zorder=1)
-        # Annotate scale_bar
+        # Annotate scale_bar.
         location_annotation = len_ticks / 2
         ax.annotate(
-            f'{round(len_ticks)}bp',
+            f'{self.get_units_size_dna(len_ticks)}',
             fontsize=8,
             xy=(location_annotation, self.y_separation/2),
-            xytext=(0, 5),
+            xytext=(0, -9),
             textcoords='offset points',
             ha='center',
         )
 
-    def make_colormap(self, identity_color, min_val=0.0, max_val=1.0, n=100):
+    def get_units_size_dna(self, len_dna: float) -> str:
+        """Get the units of the dna length."""
+        if len_dna < 1_000_000 and len_dna >= 1_000:
+            num = len_dna / 1_000
+            return str(round(num, 1)) + ' kbp'
+        elif len_dna < 1_000_000_000 and len_dna >= 1_000_000:
+            num = len_dna / 1_000_000
+            return str(round(num, 1)) + ' Mbp'
+        else:
+            return str(round(len_dna)) + ' bp'
+
+    def make_colormap(
+            self, identity_color: str, min_val: float = 0.0, max_val:
+            float = 1.0, n: int = 100
+        ) -> Colormap:
         """Make color map for homology regions."""
         try:
             cmap = plt.colormaps[identity_color]
@@ -507,13 +517,8 @@ class MakeFigure:
             )
             return new_cmap
 
-    def plot_homology_regions(self, ax):
-        """Plot homology regions of aligned sequences.
-
-        Parameters
-        ----------
-        ax : axes, matplotlib object
-        """
+    def plot_homology_regions(self, ax: Axes) -> None:
+        """Plot homology regions of aligned sequences."""
         y_distance = ((len(self.alignments) + 1) * self.y_separation)
         # Readjust position of alignment to right or center if requested.
         if self.alignments_position == "right":
@@ -543,13 +548,8 @@ class MakeFigure:
                 )
             y_distance -= self.y_separation
 
-    def plot_colorbar(self, ax):
-        """Plot color bar for homology regions.
-
-        Parameters
-        ----------
-        ax : axes, matplotlib object
-        """
+    def draw_colorbar(self, ax: Axes) -> None:
+        """Draw color bar for homology regions."""
         norm = mpl.colors.Normalize(vmin=0, vmax=100)
         print(
             "lowest and highest plot colorbar:",
@@ -561,7 +561,7 @@ class MakeFigure:
             )
             colormap = plt.colorbar(
                     plt.cm.ScalarMappable(norm=norm, cmap=self.color_map),
-                    ax=ax,                 # Axes to draw colormap
+                    ax=ax,                 # Axes to draw colormap.
                     shrink=0.18,
                     aspect=10,
                     orientation='vertical',
@@ -574,7 +574,7 @@ class MakeFigure:
                 size=8,
                 labelpad=-7,
             )
-            colormap.outline.set_visible(False) # Remove colormap frame
+            colormap.outline.set_visible(False) # Remove colormap frame.
         else:
             homology_path = mpatches.Patch(
                 color=self.color_map(self.highest_homology/100),
@@ -582,7 +582,7 @@ class MakeFigure:
             )
             legend = ax.legend(
                 loc="center left",
-                bbox_to_anchor=(1, 0.1),
+                bbox_to_anchor=(1, 0.5),
                 handles=[homology_path],
                 frameon=False,
                 title="Identity\n   (%)",
@@ -590,13 +590,8 @@ class MakeFigure:
             )
             legend.get_title().set_fontsize(8)
 
-    def plot_genes(self, ax):
-        """Plot genes.
-
-        Parameters
-        ----------
-        ax : axes, matplotlib object
-        """
+    def plot_genes(self, ax: Axes) -> None:
+        """Plot genes."""
         # Separation of genes of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
         arrowstyle = mpatches.ArrowStyle(
@@ -616,13 +611,8 @@ class MakeFigure:
                 ax.add_patch(arrow)
             y_distance -= self.y_separation
 
-    def plot_arrows(self, ax):
-        """Plot arrows to reprent genes.
-
-        Parameters
-        ----------
-        ax : axes, matplotlib object
-        """
+    def plot_arrows(self, ax: Axes) -> None:
+        """Plot arrows to reprent genes."""
         # Separation of genes of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
         # Ratio head_height vs lenght of longest sequence.
@@ -641,13 +631,8 @@ class MakeFigure:
                 ax.fill(x_values, y_values, gene.color)
             y_distance -= self.y_separation
 
-    def annotate_dna_sequences(self, ax):
-        """Annotate DNA sequences.
-
-        Parameters
-        ----------
-        ax : axes, matplotlib object
-        """
+    def annotate_dna_sequences(self, ax: Axes) -> None:
+        """Annotate DNA sequences."""
         # Separation of annotations of each sequence in the y axis.
         y_distance = len(self.gb_records) * self.y_separation
         # Annotate sequences.
@@ -671,12 +656,9 @@ class MakeFigure:
             )
             y_distance -= self.y_separation
 
-    def annotate_gene_sequences(self, ax):
+    def annotate_gene_sequences(self, ax: Axes) -> None:
         """Annotate genes of DNA sequence.
-        
-        Parameters
-        ----------
-        ax : axes, matplotlib object
+
         Note
         ----
         This function annotates genes only of top and bottom sequences.
@@ -720,7 +702,8 @@ class MakeFigure:
                     verticalalignment=parameters["v_alignment"]
                 )
 
-    def determine_figure_size(self, num_alignments) -> tuple:
+    def determine_figure_size(
+            self, num_alignments: int) -> tuple[float, float]:
         """Determine figure size."""
         # The Matplotlib default figure size is 6.4 x 4.8.
         width = 6.4
@@ -741,23 +724,24 @@ class MakeFigure:
             figsize=(width, height),
             layout="constrained"
         )
+        # Remove figure axis.
         ax.set_axis_off()
         # Plot DNA sequences.
         self.plot_dna_sequences(ax)
+        # Plot genes using the Arrow class.
+        self.plot_arrows(ax)
+        # Plot homology regions.
+        self.plot_homology_regions(ax)
+        # Draw colorbar.
+        self.draw_colorbar(ax)
+        # Plot scale bar.
+        self.draw_scale_bar(ax)
         # Annotate DNA sequences.
         if self.annotate_sequences:
             self.annotate_dna_sequences(ax)
-        # Plot homology regions.
-        self.plot_homology_regions(ax)
-        # Plot colorbar.
-        self.plot_colorbar(ax)
-        # Plot genes using the Arrow class.
-        self.plot_arrows(ax)
         # Annotate genes.
         if self.annotate_genes:
             self.annotate_gene_sequences(ax)
-        # Plot scale bar.
-        self.plot_scale(ax)
         return fig
 
     def check_save_figure(self) -> bool:
