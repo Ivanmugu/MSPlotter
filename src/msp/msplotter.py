@@ -27,6 +27,7 @@ from matplotlib.colors import Colormap
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import matplotlib.ticker as ticker
 import numpy as np
 from Bio import SeqIO
 from Bio.Blast import NCBIXML
@@ -312,6 +313,8 @@ class MakeFigure:
         Color used to represent regions of homology (default: `Greys`). This
         color represent a `Matplotlib` colormap. Therefore, you should provide
         a valid colormap name.
+    scale_bar : bool
+        Show scale bar (default: True).
     color_map_range : tupple
         Tyupple with a min and max value between 0 and 1. The min and max
         values are used in color_map to determine the range of the color_map
@@ -338,7 +341,7 @@ class MakeFigure:
         annotate_genes=False, annotate_genes_on_sequence=("top", "bottom"),
         annotate_sequences=False, sequence_name="accession", y_separation=10,
         sequence_color="black", sequence_width=3, identity_color="Greys",
-        color_map_range=(0, 0.75), homology_padding=0.1,
+        scale_bar=True, color_map_range=(0, 0.75), homology_padding=0.1,
         figure_name=(Path.cwd() / 'figure.png'),
         figure_format='png', dpi=300.0, use_gui=False
     ):
@@ -354,6 +357,7 @@ class MakeFigure:
         self.sequence_color = sequence_color
         self.sequence_width = sequence_width
         self.identity_color = identity_color
+        self.scale_bar = scale_bar
         self.color_map_range = color_map_range
         self.color_map = self.make_colormap(
             identity_color=identity_color,
@@ -461,20 +465,27 @@ class MakeFigure:
             )
             y_distance -= self.y_separation
 
-    def draw_scale_bar(self, ax: Axes) -> None:
+    def draw_scale_bar(self, ax: Axes, bar_position: int = 0) -> None:
         """Draw a horizontal scale bar for DNA length."""
+        location_scale = (self.y_separation / 2) + bar_position
         # Get x_ticks.
         x_ticks = ax.get_xticks()
         len_ticks = x_ticks[1] - x_ticks[0]
         # Draw scale_bar.
-        ax.plot((0,len_ticks), (self.y_separation/2,self.y_separation/2),
-                linestyle='solid', color='black', linewidth=2, zorder=1)
+        ax.plot(
+            (0, len_ticks),
+            (location_scale, location_scale),
+            linestyle='solid',
+            color='black',
+            linewidth=2,
+            zorder=1
+        )
         # Annotate scale_bar.
         location_annotation = len_ticks / 2
         ax.annotate(
             f'{self.get_units_size_dna(len_ticks)}',
             fontsize=8,
-            xy=(location_annotation, self.y_separation/2),
+            xy=(location_annotation, location_scale),
             xytext=(0, -9),
             textcoords='offset points',
             ha='center',
@@ -559,11 +570,23 @@ class MakeFigure:
         #     boundaries = np.linspace(
         #         self.lowest_homology, self.highest_homology, 100
         #     )
-        #     colormap = plt.colorbar(
+        #     pos = ax.get_position()
+        #     print(pos)
+        #     ax.set_position([0, 0, 0.9, 1])
+        #     axins = inset_axes(
+        #         ax,
+        #         width="2%",  # width: 5% of parent_bbox width
+        #         height="20%",  # height: 50%
+        #         loc="lower left",
+        #         bbox_to_anchor=(1.0, 0.01, 1, 1),
+        #         bbox_transform=ax.transAxes,
+        #         borderpad=0,
+        #     )
+        #     colormap = fig.colorbar(
         #             plt.cm.ScalarMappable(norm=norm, cmap=self.color_map),
-        #             ax=ax,                 # Axes to draw colormap.
-        #             shrink=0.18,
-        #             aspect=10,
+        #             cax=axins,                 # Axes to draw colormap.
+        #             # shrink=0.18,
+        #             # aspect=10,
         #             orientation='vertical',
         #             boundaries=boundaries,
         #             ticks=[self.lowest_homology, self.highest_homology],
@@ -571,54 +594,55 @@ class MakeFigure:
         #     colormap.ax.tick_params(labelsize=8)
         #     colormap.set_label(
         #         label="Identity (%)",
-        #         size=8,
+        #         size=7,
         #         labelpad=-7,
         #     )
         #     colormap.outline.set_visible(False) # Remove colormap frame.
+        #     axins.set_aspect(8)                 # Set aspect of colormap.
         if self.lowest_homology != self.highest_homology:
             boundaries = np.linspace(
                 self.lowest_homology, self.highest_homology, 100
             )
-            pos = ax.get_position()
-            print(pos)
-            ax.set_position([0, 0, 0.9, 1])
+            # ax.set_position([0, 0, 0.9, 1])
             axins = inset_axes(
                 ax,
-                width="2%",  # width: 5% of parent_bbox width
-                height="20%",  # height: 50%
-                loc="lower left",
-                bbox_to_anchor=(1.0, 0.01, 1, 1),
+                width="15%",  # width: 5% of parent_bbox width
+                height="2.5%",  # height: 50%
+                loc="lower right",
+                bbox_to_anchor=(0., 0.04, 0.95, 0.95),
                 bbox_transform=ax.transAxes,
                 borderpad=0,
             )
             colormap = fig.colorbar(
                     plt.cm.ScalarMappable(norm=norm, cmap=self.color_map),
                     cax=axins,                 # Axes to draw colormap.
-                    # shrink=0.18,
-                    # aspect=10,
-                    orientation='vertical',
+                    orientation='horizontal',
                     boundaries=boundaries,
                     ticks=[self.lowest_homology, self.highest_homology],
             )
             colormap.ax.tick_params(labelsize=8)
+            # Format ticks 
+            colormap.ax.xaxis.set_major_formatter(
+                ticker.FuncFormatter(lambda x, pos: f'{x}%')
+            )
             colormap.set_label(
-                label="Identity (%)",
+                label="Identity",
                 size=7,
                 labelpad=-7,
             )
             colormap.outline.set_visible(False) # Remove colormap frame.
-            axins.set_aspect(8)                 # Set aspect of colormap.
+            axins.set_aspect(0.1)               # Set aspect of colormap.
         else:
             homology_path = mpatches.Patch(
                 color=self.color_map(self.highest_homology/100),
-                label=f'{self.highest_homology}',
+                label=f'{self.highest_homology}%',
             )
             legend = ax.legend(
                 loc="center left",
-                bbox_to_anchor=(1, 0.08),
+                bbox_to_anchor=(0.8, 0.04),
                 handles=[homology_path],
                 frameon=False,
-                title="Identity\n   (%)",
+                title="Identity",
                 fontsize=8
             )
             legend.get_title().set_fontsize(8)
@@ -765,8 +789,6 @@ class MakeFigure:
         self.plot_arrows(ax)
         # Plot homology regions.
         self.plot_homology_regions(ax)
-        # Plot scale bar.
-        self.draw_scale_bar(ax)
         # Draw colorbar.
         self.draw_colorbar(fig, ax)
         # Annotate DNA sequences.
@@ -775,6 +797,14 @@ class MakeFigure:
         # Annotate genes.
         if self.annotate_genes:
             self.annotate_gene_sequences(ax)
+        # Plot scale bar.
+        if self.scale_bar and not self.annotate_genes:
+            self.draw_scale_bar(ax)
+        elif self.scale_bar and self.annotate_genes:
+            self.draw_scale_bar(ax, bar_position=-5)
+        else:
+            ax.set_ylim(bottom=4)
+
         return fig
 
     def check_save_figure(self) -> bool:

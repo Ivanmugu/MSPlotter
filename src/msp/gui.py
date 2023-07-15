@@ -10,7 +10,6 @@ from pathlib import Path
 
 from tkinter import filedialog
 import customtkinter
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import msp.msplotter as msp
 from msp.colormap_picker import ColormapPicker
@@ -21,16 +20,18 @@ class App(customtkinter.CTk):
     """msplotter GUI."""
     def __init__(self):
         super().__init__()
-        # Variables for BLASTing and plotting.
+        # -- Variables for BLASTing and plotting ------------------------------
         self.figure_plt = None                        # matplotlib object.
         self.gb_files: list = None
         self.figure_msp = None                     # msplotter object.
         self.identity_color: str = "Greys"
         self.colormap_range: tuple = (0, 0.75)
+        self.scale_bar: bool = False
         self.annotate_sequences: bool = False
         self.annotate_genes: bool = False
-        # Set layout parameters
-        self.geometry('600x520')
+
+        # -- Set layout parameters --------------------------------------------
+        self.geometry('600x600')
         self.title('MSPlotter')
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -40,9 +41,7 @@ class App(customtkinter.CTk):
         # launch_colormap_picker function.
         self.colormap_app = None
 
-        # ################ #
-        # Navigation frame #
-        # ################ #
+        # -- Navigation frame -------------------------------------------------
         # Create navigation frame.
         self.navigation_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.navigation_frame.grid(row=0, column=0, columnspan=3, sticky='nsew')
@@ -74,16 +73,14 @@ class App(customtkinter.CTk):
         )
         self.plot_button.grid(row=0, column=3, padx=(5,10), pady=20)
 
-        # ################ #
-        # Appearance frame #
-        # ################ #
+        # -- Appearance frame -------------------------------------------------
         self.appearance_frame = customtkinter.CTkFrame(
             self, corner_radius=5,
         )
         self.appearance_frame.grid(
             row=1, column=0, padx=(10, 5), pady=10, sticky='nsew'
         )
-        self.appearance_frame.grid_rowconfigure(9, weight=1)
+        self.appearance_frame.grid_rowconfigure(11, weight=1)
         # Appearance label
         self.system_appearance_mode = customtkinter.get_appearance_mode()
         if self.system_appearance_mode == 'Dark':
@@ -140,14 +137,14 @@ class App(customtkinter.CTk):
             self.appearance_frame,
             values=['No', 'Yes'],
             variable=self.annotate_seq_var,
-            command=lambda _:self.update_annotate_seq_var()
+            command=lambda _:self.update_annotate_seq()
         )
         self.annotate_seq_menu.grid(row=6, column=0, pady=(0,10))
         # Annotate genes label
         self.annotate_genes_label = customtkinter.CTkLabel(
             self.appearance_frame, text='Annotate genes:'
         )
-        self.annotate_genes_label.grid(row=7, column=0, pady=(10, 0))
+        self.annotate_genes_label.grid(row=7, column=0, pady=(10,0))
         # Variable to store annotate_genes menu selection
         self.annotate_genes_var = customtkinter.StringVar(self, 'No')
         # Annotate genes menu
@@ -155,18 +152,31 @@ class App(customtkinter.CTk):
             self.appearance_frame,
             values=['No', 'Yes'],
             variable=self.annotate_genes_var,
-            command=lambda _:self.update_annotate_genes_var()
+            command=lambda _:self.update_annotate_genes()
         )
         self.annotate_genes_menu.grid(row=8, column=0, pady=(0,10))
+        # Scale bar label
+        self.scale_bar_label = customtkinter.CTkLabel(
+            self.appearance_frame, text='Scale bar:'
+        )
+        self.scale_bar_label.grid(row=9, column=0, pady=(10,0))
+        # Variable to store scale_bar menu selection
+        self.scale_bar_var = customtkinter.StringVar(self, 'No')
+        # Scale bar menu
+        self.scale_bar_menu = customtkinter.CTkOptionMenu(
+            self.appearance_frame,
+            values=['No', 'Yes'],
+            variable=self.scale_bar_var,
+            command=lambda _:self.update_scale_bar()
+        )
+        self.scale_bar_menu.grid(row=10, column=0, pady=(0,10))
         # Reset button
         self.reset_button = customtkinter.CTkButton(
             self.appearance_frame, text='Reset', command=self.reset_appearance
         )
-        self.reset_button.grid(row=9, column=0, pady=(20, 10))
+        self.reset_button.grid(row=11, column=0, pady=(20, 10))
 
-        # ############# #
-        # Display frame #
-        # ############# #
+        # -- Display frame ---------------------------------------------------
         # Create display frame
         self.display_frame = customtkinter.CTkFrame(
             self, corner_radius=0,
@@ -231,7 +241,6 @@ class App(customtkinter.CTk):
         self.display_window.delete('1.0', 'end')
         self.display_window.configure(state='disabled')
         self.plot_button.configure(state='disabled')
-        self.save_button.configure(state='disabled')
         self.clear_button.configure(state='disabled')
 
     def launch_colormap_picker(self):
@@ -257,17 +266,23 @@ class App(customtkinter.CTk):
         )
         self.display_window.configure(state='disabled')
 
-    def update_annotate_seq_var(self):
+    def update_annotate_seq(self):
         if self.annotate_seq_var.get() == 'No':
             self.annotate_sequences = False
         else:
             self.annotate_sequences = True
 
-    def update_annotate_genes_var(self):
+    def update_annotate_genes(self):
         if self.annotate_genes_var.get() == 'No':
             self.annotate_genes = False
         else:
             self.annotate_genes = True
+
+    def update_scale_bar(self):
+        if self.scale_bar_var.get() == 'No':
+            self.scale_bar = False
+        else:
+            self.scale_bar = True
 
     def reset_appearance(self):
         """Reset appearance parameters."""
@@ -280,9 +295,12 @@ class App(customtkinter.CTk):
         # Reset annotate sequences
         self.annotate_seq_var.set('No')
         self.annotate_seq_menu.configure(variable=self.annotate_seq_var)
-        # Reset Annotate genes
+        # Reset annotate genes
         self.annotate_genes_var.set('No')
         self.annotate_genes_menu.configure(variable=self.annotate_genes_var)
+        # Reset scale bar
+        self.scale_bar_var.set('No')
+        self.scale_bar_menu.configure(variable=self.scale_bar_var)
 
     def plot_figure(self):
         """Plot alignments using msplotter."""
@@ -307,6 +325,7 @@ class App(customtkinter.CTk):
             color_map_range=self.colormap_range,
             annotate_sequences=self.annotate_sequences,
             annotate_genes=self.annotate_genes,
+            scale_bar=self.scale_bar,
             use_gui=True
         )
         # Plot figure using the Plot class
