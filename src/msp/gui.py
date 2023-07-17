@@ -14,24 +14,25 @@ import customtkinter
 import msp.msplotter as msp
 from msp.colormap_picker import ColormapPicker
 from msp.plot import Plot
-
+from msp.spinbox import FloatSpinbox
 
 class App(customtkinter.CTk):
     """msplotter GUI."""
     def __init__(self):
         super().__init__()
         # -- Variables for BLASTing and plotting ------------------------------
-        self.figure_plt = None                        # matplotlib object.
+        self.figure_plt = None                 # matplotlib object.
         self.gb_files: list = None
-        self.figure_msp = None                     # msplotter object.
+        self.figure_msp = None                 # msplotter object.
         self.identity_color: str = "Greys"
         self.colormap_range: tuple = (0, 0.75)
+        self.y_limit: float = 0                # to adjust position of colormap
         self.scale_bar: bool = False
         self.annotate_sequences: bool = False
         self.annotate_genes: bool = False
 
         # -- Set layout parameters --------------------------------------------
-        self.geometry('600x600')
+        self.geometry('600x700')
         self.title('MSPlotter')
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -49,7 +50,7 @@ class App(customtkinter.CTk):
         # Logo label
         self.logo_label = customtkinter.CTkLabel(
             self.navigation_frame, text='MSPloter',
-            font=customtkinter.CTkFont(size=20, weight='bold')
+            font=customtkinter.CTkFont(size=24, weight='bold')
         )
         self.logo_label.grid(row=0, column=0, padx=(10,5), pady=20)
         # Select button
@@ -80,24 +81,19 @@ class App(customtkinter.CTk):
         self.appearance_frame.grid(
             row=1, column=0, padx=(10, 5), pady=10, sticky='nsew'
         )
-        self.appearance_frame.grid_rowconfigure(11, weight=1)
+        self.appearance_frame.grid_rowconfigure(13, weight=1)
         # Appearance label
-        self.system_appearance_mode = customtkinter.get_appearance_mode()
-        if self.system_appearance_mode == 'Dark':
-            self.appearance_fg_color = '#333333'
-        else:
-            self.appearance_fg_color = 'Gray80'
         self.appearance_label = customtkinter.CTkLabel(
             self.appearance_frame,
             text='Appearance',
-            font=customtkinter.CTkFont(size=16),
+            font=customtkinter.CTkFont(size=18, weight='bold'),
             width=120,
             height=50,
             corner_radius=5,
-            fg_color=self.appearance_fg_color,
+            # fg_color=self.appearance_fg_color,
         )
         self.appearance_label.grid(
-            row=0, column=0, pady=(0,10), sticky='nswe'
+            row=0, column=0, pady=(10,10), sticky='nswe'
         )
         # Homology color label
         self.homology_label = customtkinter.CTkLabel(
@@ -170,11 +166,24 @@ class App(customtkinter.CTk):
             command=lambda _:self.update_scale_bar()
         )
         self.scale_bar_menu.grid(row=10, column=0, pady=(0,10))
+        # Color map position label
+        self.cmap_position_label = customtkinter.CTkLabel(
+            self.appearance_frame, text='Position colormap:'
+        )
+        self.cmap_position_label.grid(row=11, column=0, pady=(10, 0))
+        # Color map position spinbox
+        self.cmap_position_spinbox = FloatSpinbox(
+            self.appearance_frame,
+            width=140,
+            height=28,
+            command=self.update_y_limit
+        )
+        self.cmap_position_spinbox.grid(row=12, column=0, pady=(0, 10))
         # Reset button
         self.reset_button = customtkinter.CTkButton(
             self.appearance_frame, text='Reset', command=self.reset_appearance
         )
-        self.reset_button.grid(row=11, column=0, pady=(20, 10))
+        self.reset_button.grid(row=13, column=0, pady=(20, 10))
 
         # -- Display frame ---------------------------------------------------
         # Create display frame
@@ -284,6 +293,9 @@ class App(customtkinter.CTk):
         else:
             self.scale_bar = True
 
+    def update_y_limit(self):
+        self.y_limit = self.cmap_position_spinbox.get()
+
     def reset_appearance(self):
         """Reset appearance parameters."""
         # Reset color map
@@ -301,6 +313,9 @@ class App(customtkinter.CTk):
         # Reset scale bar
         self.scale_bar_var.set('No')
         self.scale_bar_menu.configure(variable=self.scale_bar_var)
+        # Reset y_limit
+        self.y_limit = 0
+        self.cmap_position_spinbox.set(0.0)
 
     def plot_figure(self):
         """Plot alignments using msplotter."""
@@ -326,6 +341,7 @@ class App(customtkinter.CTk):
             annotate_sequences=self.annotate_sequences,
             annotate_genes=self.annotate_genes,
             scale_bar=self.scale_bar,
+            y_limit=self.y_limit,
             use_gui=True
         )
         # Plot figure using the Plot class

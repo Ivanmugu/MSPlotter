@@ -302,8 +302,11 @@ class MakeFigure:
         String to access either `name` or `accession` from GenBankRecord class
         (default: `accession`). Either `name` or `accession` is used to
         annotate the sequence if `add_annotations_sequences` attribute is True.
-    y_separation : int
+    y_separation : float
         Distance between sequences in the y-axis (default: 10).
+    y_limit : float
+        Lower limit to show in the plot (default: 5). Use this value to adjust
+        the position of the color map and the scale bar.
     sequence_color : str
         Color used for lines representing sequences (default: `black`). You can
         use any color name allowed by `Matplotlib`.
@@ -340,9 +343,9 @@ class MakeFigure:
         self, alignments, gb_records, alignments_position="left",
         annotate_genes=False, annotate_genes_on_sequence=("top", "bottom"),
         annotate_sequences=False, sequence_name="accession", y_separation=10,
-        sequence_color="black", sequence_width=3, identity_color="Greys",
-        scale_bar=True, color_map_range=(0, 0.75), homology_padding=0.1,
-        figure_name=(Path.cwd() / 'figure.png'),
+        y_limit=5, sequence_color="black", sequence_width=3,
+        identity_color="Greys", scale_bar=True, color_map_range=(0, 0.75),
+        homology_padding=0.1, figure_name=(Path.cwd() / 'figure.png'),
         figure_format='png', dpi=300.0, use_gui=False
     ):
         self.alignments = alignments
@@ -354,6 +357,7 @@ class MakeFigure:
         self.annotate_sequences = annotate_sequences
         self.sequence_name = sequence_name
         self.y_separation = y_separation
+        self.y_limit = y_limit
         self.sequence_color = sequence_color
         self.sequence_width = sequence_width
         self.identity_color = identity_color
@@ -467,14 +471,13 @@ class MakeFigure:
 
     def draw_scale_bar(self, ax: Axes, bar_position: int = 0) -> None:
         """Draw a horizontal scale bar for DNA length."""
-        location_scale = (self.y_separation / 2) + bar_position
-        # Get x_ticks.
+        # Get x_ticks to calculate sequence length.
         x_ticks = ax.get_xticks()
         len_ticks = x_ticks[1] - x_ticks[0]
         # Draw scale_bar.
         ax.plot(
             (0, len_ticks),
-            (location_scale, location_scale),
+            (bar_position, bar_position),
             linestyle='solid',
             color='black',
             linewidth=2,
@@ -485,7 +488,7 @@ class MakeFigure:
         ax.annotate(
             f'{self.get_units_size_dna(len_ticks)}',
             fontsize=8,
-            xy=(location_annotation, location_scale),
+            xy=(location_annotation, bar_position),
             xytext=(0, -9),
             textcoords='offset points',
             ha='center',
@@ -708,7 +711,7 @@ class MakeFigure:
             ax.annotate(
                 sequence_name,
                 xy=(gb_record.sequence_end, y_distance),
-                xytext=(10, 0),
+                xytext=(10, -4),
                 textcoords="offset points"
             )
             y_distance -= self.y_separation
@@ -765,45 +768,50 @@ class MakeFigure:
         # The Matplotlib default figure size is 6.4 x 4.8.
         width = 6.4
         height = 4.8
-        # Increase height after four alignments.
+        # Adjust height based on four alignments.
         if num_alignments > 4:
             height = height * (num_alignments / 4)
         return (width, height)
 
     def make_figure(self):
         """Make figure with matplotlib."""
-        # Remove toolbar from plot.
+        # -- Remove toolbar from plot -----------------------------------------
         mpl.rcParams['toolbar'] = 'None'
-        # Determine figure size by number of alignments.
+        # -- Determine figure size by number of alignments --------------------
         width, height = self.determine_figure_size(self.num_alignments)
-        # Change figure size. Matplotlib default size is 6.4 x 4.8.
+        # -- Change figure size -----------------------------------------------
+        # Matplotlib default size is 6.4 x 4.8.
         fig, ax = plt.subplots(
             figsize=(width, height),
             layout="constrained"
         )
-        # Remove figure axis.
+        # -- Remove figure axis -----------------------------------------------
         ax.set_axis_off()
-        # Plot DNA sequences.
+        # -- Plot DNA sequences -----------------------------------------------
         self.plot_dna_sequences(ax)
-        # Plot genes using the Arrow class.
+        # -- Plot genes using the Arrow class ---------------------------------
         self.plot_arrows(ax)
-        # Plot homology regions.
+        # -- Plot homology regions --------------------------------------------
         self.plot_homology_regions(ax)
-        # Draw colorbar.
+        # -- Draw colorbar ----------------------------------------------------
         self.draw_colorbar(fig, ax)
-        # Annotate DNA sequences.
+        # -- Annotate DNA sequences -------------------------------------------
         if self.annotate_sequences:
             self.annotate_dna_sequences(ax)
-        # Annotate genes.
+        # -- Annotate genes ---------------------------------------------------
         if self.annotate_genes:
             self.annotate_gene_sequences(ax)
-        # Plot scale bar.
+        # -- Plot scale bar ---------------------------------------------------
         if self.scale_bar and not self.annotate_genes:
-            self.draw_scale_bar(ax)
+            self.draw_scale_bar(ax, bar_position=self.y_limit)
+        # If annotate genes is activated with scale bar, provide more space for
+        # annotations.
         elif self.scale_bar and self.annotate_genes:
-            self.draw_scale_bar(ax, bar_position=-5)
+            self.draw_scale_bar(ax, bar_position=self.y_limit - 5)
+        # If neither scale bar nor annotate ges are activated, set the y limit
+        # to zero. This will give space for the colorbar.
         else:
-            ax.set_ylim(bottom=4)
+            ax.set_ylim(bottom=self.y_limit)
 
         return fig
 

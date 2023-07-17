@@ -14,7 +14,6 @@ import pkg_resources
 from typing import Union
 
 # TODO: test it with app_cli() function.
-# TODO: I need to check the activation of gui
 
 class UserInput:
     """Store information provided by user via the command line."""
@@ -353,7 +352,6 @@ def check_alignments_position(alignments_position: str) -> Union[None, str]:
 
 def check_annotate_sequences(annotate_sequences: str) -> Union[None, str]:
     """Check correct input for annotate sequences."""
-    #TODO it looks like fname is off
     if (
         annotate_sequences == 'accession'
         or annotate_sequences == 'name'
