@@ -106,17 +106,22 @@ class GenBankRecord:
                 color = '#ffff00'    # Make yellow default color
             else:
                 color = feature.qualifiers['Color'][0]
-            strand = feature.strand
-            if strand == -1:
-                start = feature.location._end
-                end = feature.location._start + 1
-            else:
-                start = feature.location._start + 1
-                end = feature.location._end
-            # Append cds.
-            coding_sequences.append(CodingSequence(
-                product, start, end, strand, color
-            ))
+            # Some CDS are composed of more than one parts, like introns, or,
+            # in the case of some bacteria, some genes have frameshifts as a
+            # regulatory function (some transposase genes have frameshifts as
+            # a regulatory function).
+            for part in feature.location.parts:
+                strand = part._strand
+                if strand == -1:
+                    start = part._end
+                    end = part._start + 1
+                else:
+                    start = part._start + 1
+                    end = part._end
+                # Append cds.
+                coding_sequences.append(CodingSequence(
+                    product, start, end, strand, color
+                ))
         return coding_sequences
 
 
