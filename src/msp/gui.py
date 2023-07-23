@@ -29,7 +29,11 @@ class App(customtkinter.CTk):
         self.y_limit: float = 0                # to adjust position of colormap
         self.scale_bar: bool = False
         self.annotate_sequences: bool = False
+        # if self.annotate_sequences is True, self.sequence_name is used for
+        # annotating the sequences.
+        self.sequence_name: str = "accession"
         self.annotate_genes: bool = False
+        self.annotate_genes_from: str = "gene_tag"
 
         # -- Set layout parameters --------------------------------------------
         self.geometry('600x700')
@@ -63,14 +67,16 @@ class App(customtkinter.CTk):
         self.clear_button = customtkinter.CTkButton(
             self.navigation_frame, text='Clear',
             command=self.clear_input,
-            state='disabled'
+            state='disabled',
         )
         self.clear_button.grid(row=0, column=2, padx=5, pady=20)
         # Plot button
         self.plot_button = customtkinter.CTkButton(
             self.navigation_frame, text='Plot',
             command=self.plot_figure,
-            state='disabled'
+            state='disabled',
+            fg_color='#b300b3',
+            hover_color='#800080',
         )
         self.plot_button.grid(row=0, column=3, padx=(5,10), pady=20)
 
@@ -131,7 +137,7 @@ class App(customtkinter.CTk):
         # Annotate sequences menu
         self.annotate_seq_menu = customtkinter.CTkOptionMenu(
             self.appearance_frame,
-            values=['No', 'Yes'],
+            values=['No', 'From acc number', 'From file name'],
             variable=self.annotate_seq_var,
             command=lambda _:self.update_annotate_seq()
         )
@@ -146,7 +152,7 @@ class App(customtkinter.CTk):
         # Annotate genes menu
         self.annotate_genes_menu = customtkinter.CTkOptionMenu(
             self.appearance_frame,
-            values=['No', 'Yes'],
+            values=['No', 'From gene tag', 'From product tag'],
             variable=self.annotate_genes_var,
             command=lambda _:self.update_annotate_genes()
         )
@@ -276,16 +282,29 @@ class App(customtkinter.CTk):
         self.display_window.configure(state='disabled')
 
     def update_annotate_seq(self):
-        if self.annotate_seq_var.get() == 'No':
+        if (annotate := self.annotate_seq_var.get()) == 'No':
             self.annotate_sequences = False
+            return
         else:
             self.annotate_sequences = True
+        if annotate == "From acc number":
+            self.sequence_name = "accession"
+        else:
+            self.sequence_name = "fname"
 
     def update_annotate_genes(self):
-        if self.annotate_genes_var.get() == 'No':
+        if (annotate := self.annotate_genes_var.get()) == 'No':
             self.annotate_genes = False
+            print('annotate:', annotate)
+            return
         else:
             self.annotate_genes = True
+        if annotate == "From gene tag":
+            self.annotate_genes_from = "gene_tag"
+        else:
+            self.annotate_genes_from = "product_tag"
+        print('annotate:', annotate)
+        print('annotate_genes_from:', self.annotate_genes_from)
 
     def update_scale_bar(self):
         if self.scale_bar_var.get() == 'No':
@@ -339,7 +358,9 @@ class App(customtkinter.CTk):
             identity_color=self.identity_color,
             color_map_range=self.colormap_range,
             annotate_sequences=self.annotate_sequences,
+            sequence_name=self.sequence_name,
             annotate_genes=self.annotate_genes,
+            annotate_genes_from=self.annotate_genes_from,
             scale_bar=self.scale_bar,
             y_limit=self.y_limit,
             use_gui=True

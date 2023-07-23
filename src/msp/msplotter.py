@@ -99,13 +99,14 @@ class GenBankRecord:
         for feature in record.features:
             if feature.type != 'CDS':
                 continue
-            product = feature.qualifiers.get('product', None)
-            if product is not None:
+            if gene := feature.qualifiers.get('gene', None):
+                gene = gene[0]
+            if product := feature.qualifiers.get('product', None):
                 product = product[0]
-            if feature.qualifiers.get('Color', None) is None:
-                color = '#ffff00'    # Make yellow default color
-            else:
+            if color := feature.qualifiers.get('Color', None):
                 color = feature.qualifiers['Color'][0]
+            else:
+                color = '#ffff00'    # Make yellow default color
             # Some CDS are composed of more than one parts, like introns, or,
             # in the case of some bacteria, some genes have frameshifts as a
             # regulatory function (some transposase genes have frameshifts as
@@ -120,14 +121,15 @@ class GenBankRecord:
                     end = part._end
                 # Append cds.
                 coding_sequences.append(CodingSequence(
-                    product, start, end, strand, color
+                    gene, product, start, end, strand, color
                 ))
         return coding_sequences
 
 
 class CodingSequence:
     """Store Coding Sequence (CDS) information from gb file."""
-    def __init__(self, product, start, end, strand, color):
+    def __init__(self, gene, product, start, end, strand, color):
+        self.gene = gene
         self.product = product
         self.start = int(start)
         self.end = int(end)
@@ -256,9 +258,9 @@ def run_blastn(faa_files):
         stdout, stderr = blastn_cline()
         results.append(output_file)
         print(
-            f'BLASTing {faa_files[i]} (query) and {faa_files[i+1]} (subject)'
+            f'BLASTing {faa_files[i]} (query) and {faa_files[i+1]} (subject)\n'
         )
-        print(stdout + '\n' + stderr)
+        # print(stdout + '\n' + stderr)
     return results
 
 
@@ -304,9 +306,12 @@ class MakeFigure:
         Annotate sequences in plot (defalult: False). If True, the `top` and
         `bottom` sequences are annotated.
     sequence_name : str
-        String to access either `name` or `accession` from GenBankRecord class
-        (default: `accession`). Either `name` or `accession` is used to
-        annotate the sequence if `add_annotations_sequences` attribute is True.
+        Option: `name`, `fname`, and `accession` (default: `accession`).
+        If `name` or `accession` is provided, their values are extracted from
+        the GenBankRecord class. If `fname` is provided, the value is obtained
+        from the file name. If `add_annotations_sequences` attribute is
+        True, either `name`, `fname` or `accession` is used for annotating the
+        sequence.
     y_separation : float
         Distance between sequences in the y-axis (default: 10).
     y_limit : float
@@ -347,11 +352,12 @@ class MakeFigure:
     def __init__(
         self, alignments, gb_records, alignments_position="left",
         annotate_genes=False, annotate_genes_on_sequence=("top", "bottom"),
-        annotate_sequences=False, sequence_name="accession", y_separation=10,
-        y_limit=5, sequence_color="black", sequence_width=3,
-        identity_color="Greys", scale_bar=True, color_map_range=(0, 0.75),
-        homology_padding=0.1, figure_name=(Path.cwd() / 'figure.png'),
-        figure_format='png', dpi=300.0, use_gui=False
+        annotate_genes_from="gene_tag", annotate_sequences=False,
+        sequence_name="accession", y_separation=10, y_limit=5,
+        sequence_color="black", sequence_width=3, identity_color="Greys",
+        scale_bar=True, color_map_range=(0, 0.75), homology_padding=0.1,
+        figure_name=(Path.cwd() / 'figure.png'), figure_format='png',
+        dpi=300.0, use_gui=False
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
@@ -359,6 +365,7 @@ class MakeFigure:
         self.alignments_position = alignments_position
         self.annotate_genes = annotate_genes
         self.annotate_genes_on_sequence = annotate_genes_on_sequence
+        self.annotate_genes_from = annotate_genes_from
         self.annotate_sequences = annotate_sequences
         self.sequence_name = sequence_name
         self.y_separation = y_separation
@@ -756,8 +763,12 @@ class MakeFigure:
                 parameters = bottom
             for gene in parameters["gb_record"].cds:
                 location_annotation = (gene.start + gene.end) / 2
+                if self.annotate_genes_from == "gene_tag":
+                    annotation = gene.gene
+                else:
+                    annotation = gene.product
                 ax.annotate(
-                    gene.product,
+                    annotation,
                     xy=(location_annotation, parameters["y_distance"]),
                     xytext=(0, parameters["y_text"]),
                     textcoords="offset points",
