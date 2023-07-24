@@ -19,6 +19,8 @@ Copyright (c) 2023, Ivan Munoz Gutierrez
 """
 import os
 import sys
+from pathlib import Path
+from typing import Union
 
 import matplotlib as mpl
 from matplotlib.axes import Axes
@@ -33,7 +35,6 @@ from Bio import SeqIO
 from Bio.Blast import NCBIXML
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
-from pathlib import Path
 
 from msp.arrows import Arrow
 
@@ -344,20 +345,41 @@ class MakeFigure:
         Output path with figure's name.
     figure_format : str
         Format to save figure.
+    figure_width : Union[None, float]
+        Width of figure in inches (default: None). If None, MSPlotter
+        determines the value.
+    figure_height : Union[None, float]
+        Height of figure in inches (default: None). If None, MSPlotter
+        determines the value.
     dpi : float
         Resolution of figure in dots per inch (default: 300.0).
     user_gui : bool
         Run app in a graphical user interface (default: False).
     """
     def __init__(
-        self, alignments, gb_records, alignments_position="left",
-        annotate_genes=False, annotate_genes_on_sequence=("top", "bottom"),
-        annotate_genes_from="gene_tag", annotate_sequences=False,
-        sequence_name="accession", y_separation=10, y_limit=5,
-        sequence_color="black", sequence_width=3, identity_color="Greys",
-        scale_bar=True, color_map_range=(0, 0.75), homology_padding=0.1,
-        figure_name=(Path.cwd() / 'figure.png'), figure_format='png',
-        dpi=300.0, use_gui=False
+        self,
+        alignments,
+        gb_records,
+        alignments_position: str = "left",
+        annotate_genes: bool = False,
+        annotate_genes_on_sequence: tuple[str] = ("top", "bottom"),
+        annotate_genes_from: str = "gene_tag",
+        annotate_sequences: bool = False,
+        sequence_name: str = "accession",
+        y_separation: int = 10,
+        y_limit: int = 5,
+        sequence_color: str = "black",
+        sequence_width: int = 3,
+        identity_color: str = "Greys",
+        scale_bar: bool = True,
+        color_map_range: tuple[float] = (0, 0.75),
+        homology_padding: float = 0.1,
+        figure_name: Path = (Path.cwd() / 'figure.png'),
+        figure_format: str = 'png',
+        figure_width: Union[None, float] = None,
+        figure_height: Union[None, float] = None,
+        dpi: float = 300.0,
+        use_gui: bool = False
     ):
         self.alignments = alignments
         self.num_alignments = len(alignments)
@@ -391,6 +413,8 @@ class MakeFigure:
         )
         self.figure_name = figure_name
         self.figure_format = figure_format
+        self.figure_width = figure_width
+        self.figure_height = figure_height
         self.dpi = dpi
         self.save_figure = self.check_save_figure()
         self.use_gui = use_gui
@@ -779,13 +803,25 @@ class MakeFigure:
                 )
 
     def determine_figure_size(
-            self, num_alignments: int) -> tuple[float, float]:
-        """Determine figure size."""
-        # The Matplotlib default figure size is 6.4 x 4.8.
-        width = 6.4
-        height = 4.8
+            self, num_alignments: int
+        ) -> tuple[float, float]:
+        """Determine figure size.
+
+        If user doesn't provide height, adjust height by number of alignments.
+        """
+        # The Matplotlib default figure size is 6.4 x 4.8 inches.
+        if not self.figure_width:
+            width = 6.4
+        else:
+            width = self.figure_width
+        if not self.figure_height:
+            auto_height = True
+            height = 4.8
+        else:
+            auto_height = False
+            height = self.figure_height
         # Adjust height based on four alignments.
-        if num_alignments > 4:
+        if (auto_height) and (num_alignments > 4):
             height = height * (num_alignments / 4)
         return (width, height)
 
@@ -793,11 +829,11 @@ class MakeFigure:
         """Make figure with matplotlib."""
         # -- Remove toolbar from plot -----------------------------------------
         mpl.rcParams['toolbar'] = 'None'
-        # -- Determine figure size by number of alignments --------------------
+        # -- Determine figure size --------------------------------------------
         width, height = self.determine_figure_size(self.num_alignments)
         # -- Change figure size -----------------------------------------------
-        # Matplotlib default size is 6.4 x 4.8.
         fig, ax = plt.subplots(
+            # Matplotlib default size is 6.4 x 4.8 inches
             figsize=(width, height),
             layout="constrained"
         )
