@@ -459,9 +459,9 @@ class App(customtkinter.CTk):
             y_limit=self.y_limit,
             use_gui=True
         )
-        # Plot figure using the Plot class
+        # Make figure with matplotlib via MakeFigure class.
         self.figure_plt = self.figure_msp.make_figure()
-        # Plot figure
+        # Plot using FigureCanvasTkAgg via Plot class.
         Plot(self.figure_plt, self.figure_msp)
 
     def on_closing(self):
