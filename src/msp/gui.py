@@ -36,7 +36,7 @@ class App(customtkinter.CTk):
         self.annotate_genes_from: str = "gene_tag"
 
         # -- Set layout parameters --------------------------------------------
-        self.geometry('750x600')
+        self.geometry('850x500')
         self.title('MSPlotter')
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure((2,3), weight=1)
@@ -54,7 +54,7 @@ class App(customtkinter.CTk):
         self.navigation_frame.grid_columnconfigure(0, weight=1)
         # Logo label
         self.logo_label = customtkinter.CTkLabel(
-            self.navigation_frame, text='MSPloter',
+            self.navigation_frame, text='MSPlotter',
             font=customtkinter.CTkFont(size=24, weight='bold')
         )
         self.logo_label.grid(row=0, column=0, padx=(10,5), pady=20)
@@ -88,7 +88,7 @@ class App(customtkinter.CTk):
         self.appearance_frame.grid(
             row=1, column=0, columnspan=2, padx=(10, 5), pady=10, sticky='nsew'
         )
-        self.appearance_frame.grid_rowconfigure(9, weight=1)
+        self.appearance_frame.grid_rowconfigure(2, weight=1)
         self.appearance_frame.grid_columnconfigure((0,1), weight=0)
         # Appearance label
         self.appearance_label = customtkinter.CTkLabel(
@@ -101,32 +101,49 @@ class App(customtkinter.CTk):
             # fg_color=self.appearance_fg_color,
         )
         self.appearance_label.grid(
-            row=0, column=0, columnspan=2, pady=(10,10), sticky='nswe'
+            row=0, column=0, columnspan=2, sticky='nswe'
         )
+        # Reset button
+        self.reset_button = customtkinter.CTkButton(
+            self.appearance_frame, text='Reset', fg_color='transparent',
+            text_color=('gray10', '#DCE4EE'), border_width=2,
+            command=self.reset_appearance
+        )
+        self.reset_button.grid(row=2, column=0, columnspan=2)
+        # -----> Tabview General <----- #
+        self.tabview = customtkinter.CTkTabview(
+            self.appearance_frame, width=380, height=300
+        )
+        self.tabview.grid(
+            row=1, column=0, columnspan=2, pady=(0, 10), padx=(10, 10), sticky='nsew'
+        )
+        self.tabview.add('General')
+        # self.tabview.tab('General').grid_rowconfigure(0, weight=1)
+        # self.tabview.tab('General').grid_columnconfigure((0,1), weight=0)
         # Align plot label
         self.align_plot_label = customtkinter.CTkLabel(
-            self.appearance_frame, text='Align plot:'
+            self.tabview.tab('General'), text='Align plot:'
         )
         self.align_plot_label.grid(row=1, column=0, pady=(10, 0))
         # Variable to store align_plot menu selection
         self.align_plot_var = customtkinter.StringVar(self, 'Left')
         # Align plot menu
         self.align_plot = customtkinter.CTkOptionMenu(
-            self.appearance_frame,
+            self.tabview.tab('General'),
             values=['Left', 'Center', 'Right'],
             variable=self.align_plot_var,
         )
         self.align_plot.grid(row=2, column=0, padx=20, pady=(0, 10))
         # Annotate sequences label
         self.annotate_seq_label = customtkinter.CTkLabel(
-            self.appearance_frame, text='Annotate sequences:'
+            self.tabview.tab('General'), text='Annotate sequences:'
         )
         self.annotate_seq_label.grid(row=3, column=0, pady=(10, 0))
         # Variable to store annotate_seq menu selection
         self.annotate_seq_var = customtkinter.StringVar(self, 'No')
         # Annotate sequences menu
         self.annotate_seq_menu = customtkinter.CTkOptionMenu(
-            self.appearance_frame,
+            self.tabview.tab('General'),
             values=['No', 'From acc number', 'From file name'],
             variable=self.annotate_seq_var,
             command=lambda _:self.update_annotate_seq()
@@ -134,14 +151,14 @@ class App(customtkinter.CTk):
         self.annotate_seq_menu.grid(row=4, column=0, pady=(0,10))
         # Annotate genes label
         self.annotate_genes_label = customtkinter.CTkLabel(
-            self.appearance_frame, text='Annotate genes:'
+            self.tabview.tab('General'), text='Annotate genes:'
         )
         self.annotate_genes_label.grid(row=5, column=0, pady=(10,0))
         # Variable to store annotate_genes menu selection
         self.annotate_genes_var = customtkinter.StringVar(self, 'No')
         # Annotate genes menu
         self.annotate_genes_menu = customtkinter.CTkOptionMenu(
-            self.appearance_frame,
+            self.tabview.tab('General'),
             values=['No', 'From gene tag', 'From product tag'],
             variable=self.annotate_genes_var,
             command=lambda _:self.update_annotate_genes()
@@ -149,26 +166,26 @@ class App(customtkinter.CTk):
         self.annotate_genes_menu.grid(row=6, column=0, pady=(0,10))
         # Homology color label
         self.homology_label = customtkinter.CTkLabel(
-            self.appearance_frame, text='Homology color:',
+            self.tabview.tab('General'), text='Homology color:',
         )
         self.homology_label.grid(row=1, column=1, pady=(10,0))
         # Colormap picker
         self.format_button = customtkinter.CTkButton(
-            self.appearance_frame,
+            self.tabview.tab('General'),
             text='Choose colormap',
             command=self.launch_colormap_picker
         )
         self.format_button.grid(row=2, column=1, padx=20, pady=(0, 10))
         # Scale bar label
         self.scale_bar_label = customtkinter.CTkLabel(
-            self.appearance_frame, text='Scale bar:'
+            self.tabview.tab('General'), text='Scale bar:'
         )
         self.scale_bar_label.grid(row=3, column=1, pady=(10,0))
         # Variable to store scale_bar menu selection
         self.scale_bar_var = customtkinter.StringVar(self, 'No')
         # Scale bar menu
         self.scale_bar_menu = customtkinter.CTkOptionMenu(
-            self.appearance_frame,
+            self.tabview.tab('General'),
             values=['No', 'Yes'],
             variable=self.scale_bar_var,
             command=lambda _:self.update_scale_bar()
@@ -176,24 +193,51 @@ class App(customtkinter.CTk):
         self.scale_bar_menu.grid(row=4, column=1, pady=(0,10))
         # Color map position label
         self.cmap_position_label = customtkinter.CTkLabel(
-            self.appearance_frame, text='Position colormap:'
+            self.tabview.tab('General'), text='Position colormap:'
         )
         self.cmap_position_label.grid(row=5, column=1, pady=(10, 0))
         # Color map position spinbox
         self.cmap_position_spinbox = FloatSpinbox(
-            self.appearance_frame,
+            self.tabview.tab('General'),
             width=140,
             height=28,
             command=self.update_y_limit
         )
         self.cmap_position_spinbox.grid(row=6, column=1, pady=(0, 10))
+        # -----> Tabview Size <----- #
+        self.tabview.add('Size')
+        self.size_textbox = customtkinter.CTkTextbox(
+            self.tabview.tab('Size'), wrap='word', fg_color='transparent',
+            height=110
+        )
+        self.size_textbox.grid(
+            row=0, column=0, columnspan=2, padx=(10,0), pady=(5, 0),
+            sticky='nsew'
+        )
+        self.size_textbox.insert(
+            'end',
+            'MSPlotter adjusts the size automatically.\n'
+            'A plot with four or less alignments has a size of 6.4 x 4.8 '
+            'inches.\n\n'
+            "If your plot looks congested, change the figure size."
+        )
+        # self.size_textbox.tag_config('justified', justify="center")
+        # self.size_textbox.tag_add('justified', '1.0', 'end')
+        self.size_textbox.configure(state='disabled')
+        # Enter data label
+        self.enter_data_label = customtkinter.CTkLabel(
+            self.tabview.tab('Size'), text='Enter values in inches'
+        )
+        self.enter_data_label.grid(
+            row=1, column=0, columnspan=2, sticky='we', pady=(5, 5)
+        )
         # Create a validation function to check for float input in entry boxes
         self.validation = self.register(self.validate_input)
         # Change width check box variable
         self.width_check_var = customtkinter.StringVar(value='off')
         # Change width check box
         self.width_check = customtkinter.CTkCheckBox(
-            self.appearance_frame,
+            self.tabview.tab('Size'),
             text='Change figure width:',
             variable=self.width_check_var,
             onvalue='on',
@@ -201,21 +245,21 @@ class App(customtkinter.CTk):
             command=self.change_figure_width_event
         )
         self.width_check.grid(
-            row=7, column=0, sticky='w', padx=(10,0), pady=(20, 10))
+            row=2, column=0, sticky='w', padx=(10,0), pady=(5, 10))
         # Change width entry box
         self.width_entry = customtkinter.CTkEntry(
-            self.appearance_frame,
+            self.tabview.tab('Size'),
             validate='key',
             validatecommand=(self.validation, '%P'),
         )
         self.width_entry.grid(
-            row=7, column=1, sticky='we', padx=(0,10), pady=(20, 10))
+            row=2, column=1, sticky='we', padx=(0,10), pady=(0, 10))
         self.width_entry.configure(state='disabled')
         # Change height check box variable
         self.height_check_var = customtkinter.StringVar(value='off')
         # Change height check box
         self.height_check = customtkinter.CTkCheckBox(
-            self.appearance_frame,
+            self.tabview.tab('Size'),
             text='Change figure height:',
             variable=self.height_check_var,
             onvalue='on',
@@ -223,24 +267,16 @@ class App(customtkinter.CTk):
             command=self.change_figure_height_event
         )
         self.height_check.grid(
-            row=8, column=0, sticky='w', padx=(10,0), pady=(10))
+            row=3, column=0, sticky='w', padx=(10,5), pady=(10))
         # Change height entry box
         self.height_entry = customtkinter.CTkEntry(
-            self.appearance_frame,
+            self.tabview.tab('Size'),
             validate='key',
             validatecommand=(self.validation, '%P'),
         )
         self.height_entry.grid(
-            row=8, column=1, sticky='we', padx=(0,10), pady=(10))
+            row=3, column=1, sticky='we', padx=(0,10), pady=(10))
         self.height_entry.configure(state='disabled')
-        # Reset button
-        self.reset_button = customtkinter.CTkButton(
-            self.appearance_frame, text='Reset', fg_color='transparent',
-            text_color=('gray10', '#DCE4EE'), border_width=2,
-            command=self.reset_appearance
-        )
-        self.reset_button.grid(row=9, column=0, columnspan=2, pady=(10, 10))
-
         # -- Display frame ---------------------------------------------------
         # Create display frame
         self.display_frame = customtkinter.CTkFrame(
@@ -258,7 +294,7 @@ class App(customtkinter.CTk):
         )
         self.display_window.insert(
             'end',
-            '\n\n\n\nWelcome to MSPlotter!\n\n' +
+            '\n\n\n\nWelcome to MSPlotter!\n\n'
             'Select your GenBank sequences, plot, and save.\n\n'
             "If you don't like the default parameters, change the appearance."
         )
