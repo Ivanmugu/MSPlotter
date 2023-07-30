@@ -10,10 +10,12 @@ Copyright (c) 2023, Ivan Munoz Gutierrez
 import os
 from pathlib import Path
 from PIL import Image
+from importlib import resources
 
 import customtkinter
 
 from msp.slider_widget import Slider
+import msp
 
 
 class ColormapPicker(customtkinter.CTkToplevel):
@@ -93,7 +95,7 @@ class ColormapPicker(customtkinter.CTkToplevel):
         self.selected_colormap = None
         self.range_colormap = None
         # Get path to current directory
-        self.current_dir = Path(os.path.dirname(os.path.realpath(__file__)))
+        self.current_dir = resources.files(msp)
         # Show selected colormap.
         self.update_colormap()
 

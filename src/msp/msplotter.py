@@ -21,6 +21,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Union
+from importlib import resources
 
 import matplotlib as mpl
 from matplotlib.axes import Axes
@@ -37,6 +38,7 @@ from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.SeqRecord import SeqRecord
 
 from msp.arrows import Arrow
+import msp
 
 
 class GenBankRecord:
@@ -208,60 +210,74 @@ class RegionAlignmentResult:
         self.homology = identity / align_len
 
 
-def make_fasta_file(gb_files):
-    """Make fasta files from GenBank files and save them in local directory.
+def make_fasta_files(gb_files: list[Path], output_path: Path) -> list[Path]:
+    """Make fasta files from GenBank files.
 
     Parameters
     ----------
-    gb_files : list
-        List of GenBank files.
+    gb_files : list[Path]
+        Paths' list of GenBank files.
+    output_path : Path
+        Path to folder that will store the fasta files.
 
     Returns
     -------
-    faa_files : list
-        List of fasta files names.
+    faa_files : list[Path]
+        Paths' list of fasta files names.
     """
+    # Initiate list to store paths to fasta files.
     faa_files = []
+    # Iterate over paths of gb files.
     for gb_file in gb_files:
+        # Read gb files and make a new record
         record = SeqIO.read(gb_file, "genbank")
-        name = record.name
-        # Check if record.name has `(` or `)` and remove them. Geneious add 
-        # parenthesis to the names and are included in the exported files.
-        if '(' in name or ')' in name:
-            name = name.replace('(', '').replace(')', '')
-        faa_name = name + '.faa'
         new_record = SeqRecord(
             record.seq,
             id=record.id,
             description=record.description
         )
-        SeqIO.write(new_record, faa_name, 'fasta')
-        faa_files.append(faa_name)
+        # Get name of gb file without extension
+        name = gb_file.name.split('.')[0]
+        faa_name = name + '.faa'
+        # Make otuput path
+        output_file = output_path / faa_name
+        # Create fata file
+        SeqIO.write(new_record, output_file, 'fasta')
+        # Append path of fasta file to faa_files list.
+        faa_files.append(output_file)
     return faa_files
 
 
-def run_blastn(faa_files):
+def run_blastn(faa_files: list[Path], output_path: Path) -> list[Path]:
     """Run blastn locally and create xml result file(s).
 
     Parameters
     ----------
-    faa_files : list
-        List of fasta files.
+    faa_files : list[Path]
+        Paths' list of fasta files.
+    output_path : Path
+        Path to save files produced by blastn
 
     Returns
     -------
-    results : list
-        List of xml files' names with blastn results.
+    results : list[Path]
+        Paths' list of xml files with blastn results.
     """
+    # Initiate list to store paths to xml results.
     results = []
+    # Iterate over paths of fasta files.
     for i in range(len(faa_files) - 1):
-        output_file = 'result' + str(i) + '.xml'
+        # Make path to outpu file
+        output_file_name = 'result' + str(i) + '.xml'
+        output_file = output_path / output_file_name
+        # Run blastn
         blastn_cline = NcbiblastnCommandline(
             query=faa_files[i],
             subject=faa_files[i+1],
             outfmt=5,
             out=output_file)
         stdout, stderr = blastn_cline()
+        # Append path to xlm results to the result list
         results.append(output_file)
         print(
             f'BLASTing {faa_files[i]} (query) and {faa_files[i+1]} (subject)\n'
@@ -277,6 +293,18 @@ def delete_files(documents: list) -> None:
             os.remove(document)
         else:
             print(f"File {document} does not exist")
+
+
+def clean_directory(directory_path: Path) -> None:
+    """If directory is not empty, delete all files"""
+    if not any(directory_path.iterdir()):
+        return
+    else:
+        for item in directory_path.glob("*"):
+            if item.is_file():
+                item.unlink()
+            elif item.is_dir():
+                item.rmdir()
 
 
 def get_alignment_records(alignment_files: list) -> list:
@@ -915,7 +943,7 @@ def app_cli(user_input) -> None:
     # Get list of input files' paths.
     gb_files = user_input.input_files
     # Create fasta files for BLASTing.
-    faa_files = make_fasta_file(gb_files)
+    faa_files = make_fasta_files(gb_files)
     # Run blastn locally.
     xml_results = run_blastn(faa_files)
     # Delete fasta files used for BLASTing.

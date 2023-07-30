@@ -7,6 +7,7 @@ BSD 3-Clause License
 Copyright (c) 2023, Ivan Munoz Gutierrez
 """
 from pathlib import Path
+from importlib import resources
 
 from tkinter import filedialog
 import customtkinter
@@ -15,6 +16,7 @@ import msp.msplotter as msp
 from msp.colormap_picker import ColormapPicker
 from msp.plot import Plot
 from msp.spinbox import FloatSpinbox
+import msp as current_module
 
 class App(customtkinter.CTk):
     """msplotter GUI."""
@@ -464,16 +466,21 @@ class App(customtkinter.CTk):
 
     def plot_figure(self):
         """Plot alignments using msplotter."""
+        # Make output path for temporary files.
+        module_path = resources.files(current_module)
+        path_tmp_files = module_path / "tmp_files"
         # Create fasta files for BLASTing.
-        faa_files = msp.make_fasta_file(self.gb_files)
+        faa_files = msp.make_fasta_files(self.gb_files, path_tmp_files)
         # Run blastn locally.
-        xml_results = msp.run_blastn(faa_files)
+        xml_results = msp.run_blastn(faa_files, path_tmp_files)
         # Delete fasta files used for BLASTing.
         msp.delete_files(faa_files)
         # Make a list of `BlastnAlignment` classes from the xml blastn results.
         alignments = msp.get_alignment_records(xml_results)
         # Delete xml documents.
         msp.delete_files(xml_results)
+        # Make sure that tmp_files directory is clean
+        msp.clean_directory(path_tmp_files)
         # Make a list of `GenBankRecord` classes from the gb files.
         gb_records = msp.get_gb_records(self.gb_files)
         # Get figure size
