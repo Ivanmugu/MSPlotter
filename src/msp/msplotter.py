@@ -224,7 +224,12 @@ def make_fasta_file(gb_files):
     faa_files = []
     for gb_file in gb_files:
         record = SeqIO.read(gb_file, "genbank")
-        faa_name = record.name + '.faa'
+        name = record.name
+        # Check if record.name has `(` or `)` and remove them. Geneious add 
+        # parenthesis to the names and are included in the exported files.
+        if '(' in name or ')' in name:
+            name = name.replace('(', '').replace(')', '')
+        faa_name = name + '.faa'
         new_record = SeqRecord(
             record.seq,
             id=record.id,
@@ -261,7 +266,7 @@ def run_blastn(faa_files):
         print(
             f'BLASTing {faa_files[i]} (query) and {faa_files[i+1]} (subject)\n'
         )
-        # print(stdout + '\n' + stderr)
+        print(stdout + '\n' + stderr)
     return results
 
 
