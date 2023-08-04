@@ -241,7 +241,7 @@ def make_fasta_files(gb_files: list[Path], output_path: Path) -> list[Path]:
         faa_name = name + '.faa'
         # Make otuput path
         output_file = output_path / faa_name
-        # Create fata file
+        # Create fasta file
         SeqIO.write(new_record, output_file, 'fasta')
         # Append path of fasta file to faa_files list.
         faa_files.append(output_file)

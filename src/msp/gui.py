@@ -467,7 +467,8 @@ class App(customtkinter.CTk):
     def plot_figure(self):
         """Plot alignments using msplotter."""
         # Make output path for temporary files.
-        module_path = resources.files(current_module)
+        # module_path = resources.files(current_module)
+        module_path = Path(current_module.__file__).resolve().parent
         path_tmp_files = module_path / "tmp_files"
         # Create fasta files for BLASTing.
         faa_files = msp.make_fasta_files(self.gb_files, path_tmp_files)
