@@ -480,8 +480,8 @@ class App(customtkinter.CTk):
         alignments = msp.get_alignment_records(xml_results)
         # Delete xml documents.
         msp.delete_files(xml_results)
-        # Make sure that tmp_files directory is clean
-        msp.clean_directory(path_tmp_files)
+        # # Make sure that tmp_files directory is clean
+        # msp.clean_directory(path_tmp_files) #<-tkinter stores files here too
         # Make a list of `GenBankRecord` classes from the gb files.
         gb_records = msp.get_gb_records(self.gb_files)
         # Get figure size
