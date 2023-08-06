@@ -1,0 +1,1 @@
+"""Colormaps for colormap_picker"""
